@@ -3,6 +3,7 @@
 #include "freertos/task.h"
 #include "button_mgr.h"
 #include "user_assets.h"
+#include "wifi_time.h"
 #include <time.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -25,13 +26,15 @@ typedef struct {
 
 static void format_time(char *out, size_t out_len, const struct tm *timeinfo)
 {
-    snprintf(out, out_len, "%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min);
+    snprintf(out, out_len, "%02d:%02d:%02d", timeinfo->tm_hour,
+             timeinfo->tm_min, timeinfo->tm_sec);
 }
 
-static void format_date(char *out, size_t out_len, const struct tm *timeinfo)
+static void format_date(char *out, size_t out_len, const struct tm *timeinfo, bool wifi_connected)
 {
     static const char *days[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-    snprintf(out, out_len, "%s %02d/%02d", days[timeinfo->tm_wday],
+    snprintf(out, out_len, "%s%s %02d/%02d", wifi_connected ? "" : "*",
+             days[timeinfo->tm_wday],
              timeinfo->tm_mon + 1, timeinfo->tm_mday);
 }
 
@@ -120,25 +123,29 @@ static void ui_task(void *arg) {
         }
 
         if (redraw_photo) {
-            display_draw_asset_image(display, current_photo);
+            if (overlay == OVERLAY_POMODORO) {
+                display_draw_asset_image_dimmed(display, current_photo, 45);
+            } else {
+                display_draw_asset_image(display, current_photo);
+            }
             redraw_photo = false;
             redraw_overlay = true;
         }
 
         if (redraw_overlay) {
-            char text[16];
+            char text[18];
             if (overlay == OVERLAY_DATETIME) {
                 time_t t;
                 struct tm timeinfo;
                 time(&t);
                 localtime_r(&t, &timeinfo);
                 format_time(text, sizeof(text), &timeinfo);
-                display_draw_text_on_photo(display, current_photo, 56, text, 5, 0xFFFF);
-                format_date(text, sizeof(text), &timeinfo);
+                display_draw_text_on_photo(display, current_photo, 58, text, 3, 0xFFFF);
+                format_date(text, sizeof(text), &timeinfo, wifi_time_is_connected());
                 display_draw_text_on_photo(display, current_photo, 112, text, 2, 0xFFFF);
             } else {
                 format_mmss(text, sizeof(text), pomodoro_remaining);
-                display_draw_text_on_photo(display, current_photo, 72, text, 5, 0xFFFF);
+                display_draw_text_on_photo_dimmed(display, current_photo, 72, text, 5, 0xFFFF, 45);
             }
             redraw_overlay = false;
         }

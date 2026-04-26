@@ -38,6 +38,7 @@ static const uint8_t font_digits[11][8] = {
 static const uint8_t font_dash[8]  = {0x00,0x00,0x00,0x7E,0x00,0x00,0x00,0x00};
 static const uint8_t font_slash[8] = {0x02,0x06,0x0C,0x18,0x30,0x60,0x40,0x00};
 static const uint8_t font_space[8] = {0};
+static const uint8_t font_star[8]  = {0x00,0x24,0x18,0x7E,0x18,0x24,0x00,0x00};
 static const uint8_t font_letters[26][8] = {
     {0x18,0x3C,0x66,0x66,0x7E,0x66,0x66,0x00}, // A
     {0x7C,0x66,0x66,0x7C,0x66,0x66,0x7C,0x00}, // B
@@ -75,9 +76,37 @@ static const uint8_t *get_glyph(char c) {
     if (c == '-') return font_dash;
     if (c == '/') return font_slash;
     if (c == ' ') return font_space;
+    if (c == '*') return font_star;
     if (c >= 'a' && c <= 'z') c = (char)(c - 'a' + 'A');
     if (c >= 'A' && c <= 'Z') return font_letters[c - 'A'];
     return NULL;
+}
+
+static int glyph_width(char c) {
+    if (c == ':') return 2;
+    if (c == '/') return 4;
+    if (c == ' ' || c == '*') return 5;
+    return 6;
+}
+
+static int text_width_px(const char *text, int scale) {
+    int width = 0;
+    for (int i = 0; text[i] != '\0'; i++) {
+        width += (glyph_width(text[i]) + 1) * scale;
+    }
+    return width > 0 ? width - scale : 0;
+}
+
+static void dim_rgb565_buffer(uint8_t *buffer, size_t pixel_count, uint8_t brightness_percent) {
+    for (size_t i = 0; i < pixel_count; i++) {
+        uint16_t raw = ((uint16_t)buffer[i * 2] << 8) | buffer[i * 2 + 1];
+        uint16_t r = ((raw >> 11) & 0x1F) * brightness_percent / 100;
+        uint16_t g = ((raw >> 5) & 0x3F) * brightness_percent / 100;
+        uint16_t b = (raw & 0x1F) * brightness_percent / 100;
+        uint16_t dimmed = (r << 11) | (g << 5) | b;
+        buffer[i * 2] = (uint8_t)(dimmed >> 8);
+        buffer[i * 2 + 1] = (uint8_t)(dimmed & 0xFF);
+    }
 }
 
 static bool notify_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx) {
@@ -170,6 +199,30 @@ void display_draw_asset_image(esp_lcd_panel_handle_t panel_handle, size_t photo_
     free(buffer);
 }
 
+void display_draw_asset_image_dimmed(esp_lcd_panel_handle_t panel_handle,
+                                     size_t photo_index, uint8_t brightness_percent) {
+    if (!user_assets_ready() || user_assets_photo_count() == 0) {
+        display_fill_rect(panel_handle, 0, 0, LCD_WIDTH, LCD_HEIGHT, 0x0000);
+        return;
+    }
+
+    size_t chunk_size = LCD_WIDTH * CHUNK_ROWS * 2;
+    uint8_t *buffer = heap_caps_malloc(chunk_size, MALLOC_CAP_DMA);
+    if (!buffer) return;
+
+    for (int y = 0; y < LCD_HEIGHT; y += CHUNK_ROWS) {
+        uint16_t rows = (LCD_HEIGHT - y < CHUNK_ROWS) ? (LCD_HEIGHT - y) : CHUNK_ROWS;
+        size_t bytes = LCD_WIDTH * rows * 2;
+        if (user_assets_read_photo_rows(photo_index, y, rows, buffer, bytes) != ESP_OK) {
+            break;
+        }
+        dim_rgb565_buffer(buffer, LCD_WIDTH * rows, brightness_percent);
+        esp_lcd_panel_draw_bitmap(panel_handle, 0, y, LCD_WIDTH, y + rows, buffer);
+        xSemaphoreTake(flush_sem, portMAX_DELAY);
+    }
+    free(buffer);
+}
+
 void display_fill_rect(esp_lcd_panel_handle_t panel_handle, int x, int y, int w, int h, uint16_t color) {
     size_t chunk_size = w * h * 2;
     uint16_t *buffer = heap_caps_malloc(chunk_size, MALLOC_CAP_DMA);
@@ -223,9 +276,14 @@ void display_draw_text(esp_lcd_panel_handle_t panel, int y, const char* text, in
 void display_draw_text_on_photo(esp_lcd_panel_handle_t panel, size_t photo_index,
                                 int y, const char *text, int scale,
                                 uint16_t color) {
+    display_draw_text_on_photo_dimmed(panel, photo_index, y, text, scale, color, 100);
+}
+
+void display_draw_text_on_photo_dimmed(esp_lcd_panel_handle_t panel, size_t photo_index,
+                                       int y, const char *text, int scale,
+                                       uint16_t color, uint8_t brightness_percent) {
     int len = strlen(text);
-    int char_w = 8 * scale;
-    int total_w = len * char_w;
+    int total_w = text_width_px(text, scale);
     int h = 8 * scale;
     int start_x = (LCD_WIDTH - total_w) / 2;
     if (start_x < 0 || y < 0 || y + h > LCD_HEIGHT) return;
@@ -243,19 +301,25 @@ void display_draw_text_on_photo(esp_lcd_panel_handle_t panel, size_t photo_index
         for (int py = 0; py < h; py++) {
             memcpy(&buf[py * total_w], &rows[py * LCD_WIDTH + start_x], total_w * 2);
         }
+        dim_rgb565_buffer((uint8_t *)buf, total_w * h, brightness_percent);
     } else {
         for (int i = 0; i < total_w * h; i++) buf[i] = 0x0000;
     }
 
+    int cursor_x = 0;
     for (int i = 0; i < len; i++) {
         const uint8_t *glyph = get_glyph(text[i]);
-        if (!glyph) continue;
+        int glyph_w = glyph_width(text[i]);
+        if (!glyph) {
+            cursor_x += (glyph_w + 1) * scale;
+            continue;
+        }
         for (int py = 0; py < 8; py++) {
-            for (int px = 0; px < 8; px++) {
+            for (int px = 0; px < glyph_w; px++) {
                 if (glyph[py] & (1 << (7 - px))) {
                     for (int sy = 0; sy < scale; sy++) {
                         for (int sx = 0; sx < scale; sx++) {
-                            int bx = (i * char_w) + (px * scale) + sx;
+                            int bx = cursor_x + (px * scale) + sx;
                             int by = (py * scale) + sy;
                             buf[by * total_w + bx] = color;
                         }
@@ -263,6 +327,7 @@ void display_draw_text_on_photo(esp_lcd_panel_handle_t panel, size_t photo_index
                 }
             }
         }
+        cursor_x += (glyph_w + 1) * scale;
     }
 
     esp_lcd_panel_draw_bitmap(panel, start_x, y, start_x + total_w, y + h, buf);
