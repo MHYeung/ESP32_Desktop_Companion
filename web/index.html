@@ -20,7 +20,15 @@
         <label>Board<select id="board"></select></label>
         <label>Wi-Fi SSID<input id="ssid" autocomplete="off" maxlength="32" /></label>
         <label>Wi-Fi Password<input id="password" type="password" maxlength="64" /></label>
-        <label>Timezone<input id="timezone" value="UTC0" /></label>
+        <label>Timezone
+          <select id="timezone">
+            <option value="CST-8" selected>Taiwan / Taipei (UTC+8)</option>
+            <option value="JST-9">Japan / Korea (UTC+9)</option>
+            <option value="UTC0">UTC</option>
+            <option value="PST8PDT,M3.2.0,M11.1.0">US Pacific</option>
+            <option value="EST5EDT,M3.2.0,M11.1.0">US Eastern</option>
+          </select>
+        </label>
         <label>Photo rotation seconds<input id="rotation" type="number" min="10" value="60" /></label>
         <label>Pomodoro duration seconds<input id="pomodoro" type="number" min="300" max="5940" step="300" value="1500" /></label>
       </section>

@@ -6,7 +6,7 @@ import boardProfiles from "../boards/index.json";
 import "./styles.css";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
-const input = (id: string) => $<HTMLInputElement>(id);
+const field = (id: string) => $<HTMLInputElement | HTMLSelectElement>(id);
 
 let profiles: BoardProfile[] = [];
 let activeProfile: BoardProfile;
@@ -24,11 +24,11 @@ function bytes(value: number): string {
 
 function readConfig(): UserFlashConfig {
   return {
-    ssid: input("ssid").value.trim(),
-    password: input("password").value,
-    timezone: input("timezone").value.trim() || "UTC0",
-    rotationIntervalSec: Number(input("rotation").value || 60),
-    pomodoroSeconds: Number(input("pomodoro").value || 1500),
+    ssid: field("ssid").value.trim(),
+    password: field("password").value,
+    timezone: field("timezone").value.trim() || "UTC0",
+    rotationIntervalSec: Number(field("rotation").value || 60),
+    pomodoroSeconds: Number(field("pomodoro").value || 1500),
   };
 }
 
