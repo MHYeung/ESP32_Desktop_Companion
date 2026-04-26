@@ -37,6 +37,10 @@ function normalizeChipName(chip: string): string {
   return chip.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function chipMatchesProfile(chip: string, expectedFamily: string): boolean {
+  return normalizeChipName(chip).startsWith(normalizeChipName(expectedFamily));
+}
+
 export async function flashDevice(
   profile: BoardProfile,
   assetsImage: Uint8Array,
@@ -68,7 +72,7 @@ export async function flashDevice(
     const loader = new ESPLoader({ transport, baudrate: profile.baudRate, terminal });
     const chip = await loader.main("default_reset");
     callbacks.log(`Connected to ${chip}`);
-    if (normalizeChipName(chip) !== normalizeChipName(profile.chipFamily)) {
+    if (!chipMatchesProfile(chip, profile.chipFamily)) {
       throw new Error(`Selected ${profile.name}, but connected chip is ${chip}`);
     }
 
