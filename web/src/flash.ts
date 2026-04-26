@@ -14,7 +14,15 @@ export interface FlashCallbacks {
 async function fetchBinary(path: string): Promise<Uint8Array> {
   const response = await fetch(path);
   if (!response.ok) throw new Error(`Missing firmware artifact: ${path}`);
-  return new Uint8Array(await response.arrayBuffer());
+  const data = new Uint8Array(await response.arrayBuffer());
+  if (data[0] !== 0xe9) {
+    throw new Error(`Firmware artifact is not an ESP image: ${path}`);
+  }
+  return data;
+}
+
+function normalizeChipName(chip: string): string {
+  return chip.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
 export async function flashDevice(
@@ -26,11 +34,13 @@ export async function flashDevice(
   if (!serial) throw new Error("Web Serial is unavailable. Use Chrome or Edge over HTTPS.");
 
   const firmwareParts = await Promise.all(
-    profile.firmwareParts.map(async (part) => ({
-      address: part.offset,
-      data: await fetchBinary(part.path),
-    })),
+    profile.firmwareParts.map(async (part) => {
+      const data = await fetchBinary(part.path);
+      callbacks.log(`Queued ${part.name}: 0x${part.offset.toString(16)} (${data.byteLength} bytes)`);
+      return { address: part.offset, data };
+    }),
   );
+  callbacks.log(`Queued assets: 0x${profile.assetsOffset.toString(16)} (${assetsImage.byteLength} bytes)`);
   firmwareParts.push({ address: profile.assetsOffset, data: assetsImage });
 
   const port = await serial.requestPort();
@@ -45,6 +55,9 @@ export async function flashDevice(
     const loader = new ESPLoader({ transport, baudrate: profile.baudRate, terminal });
     const chip = await loader.main("default_reset");
     callbacks.log(`Connected to ${chip}`);
+    if (normalizeChipName(chip) !== normalizeChipName(profile.chipFamily)) {
+      throw new Error(`Selected ${profile.name}, but connected chip is ${chip}`);
+    }
 
     const options: FlashOptions = {
       fileArray: firmwareParts,

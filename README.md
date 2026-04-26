@@ -12,6 +12,12 @@ ESP-IDF firmware and a GitHub Pages web flasher for a 240x240 ST7789 desktop pho
 
 Web Serial requires HTTPS, so GitHub Pages is the intended hosting target.
 
+## Recovery If Flashing Fails
+
+`invalid header: 0xffffffff` means the ROM is reading erased flash where the bootloader should be. The board is not bricked.
+
+For ESP32-S3/C3/C6, the web flasher writes the bootloader at `0x0`, the partition table at `0x8000`, and the app at `0x10000`. If you see this error, redeploy the latest web flasher, hold BOOT while connecting if needed, and flash again.
+
 ## Firmware Behavior
 
 - Gallery is the base screen.
