@@ -140,9 +140,9 @@ static void ui_task(void *arg) {
                 time(&t);
                 localtime_r(&t, &timeinfo);
                 format_time(text, sizeof(text), &timeinfo);
-                display_draw_text_on_photo(display, current_photo, 58, text, 3, 0xFFFF);
+                display_draw_text_on_photo(display, current_photo, 50, text, 4, 0xFFFF);
                 format_date(text, sizeof(text), &timeinfo, wifi_time_is_connected());
-                display_draw_text_on_photo(display, current_photo, 112, text, 2, 0xFFFF);
+                display_draw_text_on_photo(display, current_photo, 104, text, 2, 0xFFFF);
             } else {
                 format_mmss(text, sizeof(text), pomodoro_remaining);
                 display_draw_text_on_photo_dimmed(display, current_photo, 72, text, 5, 0xFFFF, 45);
