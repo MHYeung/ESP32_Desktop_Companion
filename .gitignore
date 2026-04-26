@@ -55,6 +55,8 @@ CTestTestfile.cmake
 __pycache__/
 *.egg-info/
 dist/
+node_modules/
+web/node_modules/
 
 # Virtual environment folders
 venv/

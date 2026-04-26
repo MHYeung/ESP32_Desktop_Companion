@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "display_hal.h"
-#include "esp_littlefs.h"
+#include "user_assets.h"
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 #include "esp_lcd_panel_io.h"
@@ -35,7 +35,20 @@ static const uint8_t font_digits[11][8] = {
     {0x00,0x00,0x18,0x18,0x00,0x18,0x18,0x00}  // :
 };
 
+static const uint8_t font_dash[8]  = {0x00,0x00,0x00,0x7E,0x00,0x00,0x00,0x00};
+static const uint8_t font_slash[8] = {0x02,0x06,0x0C,0x18,0x30,0x60,0x40,0x00};
+static const uint8_t font_space[8] = {0};
+
 static SemaphoreHandle_t flush_sem = NULL;
+
+static const uint8_t *get_glyph(char c) {
+    if (c >= '0' && c <= '9') return font_digits[c - '0'];
+    if (c == ':') return font_digits[10];
+    if (c == '-') return font_dash;
+    if (c == '/') return font_slash;
+    if (c == ' ') return font_space;
+    return NULL;
+}
 
 static bool notify_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx) {
     BaseType_t need_yield = pdFALSE;
@@ -44,16 +57,7 @@ static bool notify_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel
 }
 
 esp_lcd_panel_handle_t display_hal_init(void) {
-    // 1. Mount LittleFS
-    esp_vfs_littlefs_conf_t conf = {
-        .base_path = "/littlefs",
-        .partition_label = "storage",
-        .format_if_mount_failed = true,
-        .dont_mount = false,
-    };
-    esp_vfs_littlefs_register(&conf);
-
-    // 2. Init SPI
+    // 1. Init SPI
     spi_bus_config_t buscfg = {
         .sclk_io_num = PIN_NUM_CLK,
         .mosi_io_num = PIN_NUM_MOSI,
@@ -64,7 +68,7 @@ esp_lcd_panel_handle_t display_hal_init(void) {
     };
     spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO);
 
-    // 3. Init IO
+    // 2. Init IO
     esp_lcd_panel_io_handle_t io_handle = NULL;
     esp_lcd_panel_io_spi_config_t io_config = {
         .dc_gpio_num = PIN_NUM_DC,
@@ -77,12 +81,12 @@ esp_lcd_panel_handle_t display_hal_init(void) {
     };
     esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &io_config, &io_handle);
 
-    // 4. Register DMA Callback
+    // 3. Register DMA Callback
     flush_sem = xSemaphoreCreateBinary();
     const esp_lcd_panel_io_callbacks_t cbs = { .on_color_trans_done = notify_flush_ready };
     esp_lcd_panel_io_register_event_callbacks(io_handle, &cbs, NULL);
 
-    // 5. Init Panel
+    // 4. Init Panel
     esp_lcd_panel_handle_t panel_handle = NULL;
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = PIN_NUM_RST,
@@ -114,6 +118,28 @@ void display_draw_bin_image(esp_lcd_panel_handle_t panel_handle, const char* fil
     fclose(f);
 }
 
+void display_draw_asset_image(esp_lcd_panel_handle_t panel_handle, size_t photo_index) {
+    if (!user_assets_ready() || user_assets_photo_count() == 0) {
+        display_fill_rect(panel_handle, 0, 0, LCD_WIDTH, LCD_HEIGHT, 0x0000);
+        return;
+    }
+
+    size_t chunk_size = LCD_WIDTH * CHUNK_ROWS * 2;
+    uint8_t *buffer = heap_caps_malloc(chunk_size, MALLOC_CAP_DMA);
+    if (!buffer) return;
+
+    for (int y = 0; y < LCD_HEIGHT; y += CHUNK_ROWS) {
+        uint16_t rows = (LCD_HEIGHT - y < CHUNK_ROWS) ? (LCD_HEIGHT - y) : CHUNK_ROWS;
+        size_t bytes = LCD_WIDTH * rows * 2;
+        if (user_assets_read_photo_rows(photo_index, y, rows, buffer, bytes) != ESP_OK) {
+            break;
+        }
+        esp_lcd_panel_draw_bitmap(panel_handle, 0, y, LCD_WIDTH, y + rows, buffer);
+        xSemaphoreTake(flush_sem, portMAX_DELAY);
+    }
+    free(buffer);
+}
+
 void display_fill_rect(esp_lcd_panel_handle_t panel_handle, int x, int y, int w, int h, uint16_t color) {
     size_t chunk_size = w * h * 2;
     uint16_t *buffer = heap_caps_malloc(chunk_size, MALLOC_CAP_DMA);
@@ -137,9 +163,8 @@ void display_draw_text(esp_lcd_panel_handle_t panel, int y, const char* text, in
     for (int i = 0; i < total_w * h; i++) buf[i] = bg; // Fill background
 
     for (int i = 0; i < len; i++) {
-        char c = text[i];
-        if (c < '0' || c > ':') continue; // Only process numbers and colon
-        const uint8_t *glyph = font_digits[c - '0'];
+        const uint8_t *glyph = get_glyph(text[i]);
+        if (!glyph) continue;
 
         for (int py = 0; py < 8; py++) {
             for (int px = 0; px < 8; px++) {
@@ -162,5 +187,56 @@ void display_draw_text(esp_lcd_panel_handle_t panel, int y, const char* text, in
     
     // THIS LINE FIXES ALL GRAPHICAL BUGS: Wait for hardware to finish before freeing memory!
     xSemaphoreTake(flush_sem, portMAX_DELAY);
+    free(buf);
+}
+
+void display_draw_text_on_photo(esp_lcd_panel_handle_t panel, size_t photo_index,
+                                int y, const char *text, int scale,
+                                uint16_t color) {
+    int len = strlen(text);
+    int char_w = 8 * scale;
+    int total_w = len * char_w;
+    int h = 8 * scale;
+    int start_x = (LCD_WIDTH - total_w) / 2;
+    if (start_x < 0 || y < 0 || y + h > LCD_HEIGHT) return;
+
+    uint16_t *buf = heap_caps_malloc(total_w * h * 2, MALLOC_CAP_DMA);
+    uint16_t *rows = heap_caps_malloc(LCD_WIDTH * h * 2, MALLOC_CAP_DMA);
+    if (!buf || !rows) {
+        free(buf);
+        free(rows);
+        return;
+    }
+
+    if (user_assets_ready() && user_assets_photo_count() > 0 &&
+        user_assets_read_photo_rows(photo_index, y, h, rows, LCD_WIDTH * h * 2) == ESP_OK) {
+        for (int py = 0; py < h; py++) {
+            memcpy(&buf[py * total_w], &rows[py * LCD_WIDTH + start_x], total_w * 2);
+        }
+    } else {
+        for (int i = 0; i < total_w * h; i++) buf[i] = 0x0000;
+    }
+
+    for (int i = 0; i < len; i++) {
+        const uint8_t *glyph = get_glyph(text[i]);
+        if (!glyph) continue;
+        for (int py = 0; py < 8; py++) {
+            for (int px = 0; px < 8; px++) {
+                if (glyph[py] & (1 << (7 - px))) {
+                    for (int sy = 0; sy < scale; sy++) {
+                        for (int sx = 0; sx < scale; sx++) {
+                            int bx = (i * char_w) + (px * scale) + sx;
+                            int by = (py * scale) + sy;
+                            buf[by * total_w + bx] = color;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    esp_lcd_panel_draw_bitmap(panel, start_x, y, start_x + total_w, y + h, buf);
+    xSemaphoreTake(flush_sem, portMAX_DELAY);
+    free(rows);
     free(buf);
 }

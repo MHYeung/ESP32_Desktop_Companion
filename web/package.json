@@ -1,0 +1,22 @@
+{
+  "name": "desktop-companion-web-flasher",
+  "version": "1.0.0",
+  "description": "GitHub Pages flasher for ESP32 Desktop Companion",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "esptool-js": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/w3c-web-serial": "^1.0.8",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10"
+  }
+}

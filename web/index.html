@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Desktop Companion Web Flasher</title>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">ESP32 Desktop Companion</p>
+        <h1>Flash firmware, Wi-Fi, and your own photos in one flow.</h1>
+        <p id="support">Select a board, add photos, enter local network details, then flash over USB.</p>
+      </section>
+
+      <section class="grid">
+        <label>Board<select id="board"></select></label>
+        <label>Wi-Fi SSID<input id="ssid" autocomplete="off" maxlength="32" /></label>
+        <label>Wi-Fi Password<input id="password" type="password" maxlength="64" /></label>
+        <label>Timezone<input id="timezone" value="UTC0" /></label>
+        <label>Photo rotation seconds<input id="rotation" type="number" min="10" value="60" /></label>
+        <label>Countdown seconds<input id="countdown" type="number" min="1" value="300" /></label>
+      </section>
+
+      <section>
+        <label class="upload">Photos<input id="photos" type="file" accept="image/*" multiple /></label>
+        <p id="usage"></p>
+        <div id="previews" class="previews"></div>
+      </section>
+
+      <section class="actions">
+        <button id="flash">Generate and Flash</button>
+        <span id="progress">0%</span>
+      </section>
+
+      <pre id="log"></pre>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

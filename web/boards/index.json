@@ -1,0 +1,59 @@
+[
+  {
+    "id": "esp32s3",
+    "name": "ESP32-S3",
+    "chipFamily": "ESP32-S3",
+    "width": 240,
+    "height": 240,
+    "rgb565ByteOrder": "big",
+    "assetsOffset": 2162688,
+    "assetsPartitionSize": 2031616,
+    "flashMode": "dio",
+    "flashFreq": "40m",
+    "flashSize": "4MB",
+    "baudRate": 921600,
+    "firmwareParts": [
+      { "name": "bootloader", "path": "./firmware/esp32s3/bootloader.bin", "offset": 4096 },
+      { "name": "partition-table", "path": "./firmware/esp32s3/partition-table.bin", "offset": 32768 },
+      { "name": "app", "path": "./firmware/esp32s3/esp32_desktop_companion.bin", "offset": 65536 }
+    ]
+  },
+  {
+    "id": "esp32c3",
+    "name": "ESP32-C3",
+    "chipFamily": "ESP32-C3",
+    "width": 240,
+    "height": 240,
+    "rgb565ByteOrder": "big",
+    "assetsOffset": 2162688,
+    "assetsPartitionSize": 2031616,
+    "flashMode": "dio",
+    "flashFreq": "40m",
+    "flashSize": "4MB",
+    "baudRate": 921600,
+    "firmwareParts": [
+      { "name": "bootloader", "path": "./firmware/esp32c3/bootloader.bin", "offset": 4096 },
+      { "name": "partition-table", "path": "./firmware/esp32c3/partition-table.bin", "offset": 32768 },
+      { "name": "app", "path": "./firmware/esp32c3/esp32_desktop_companion.bin", "offset": 65536 }
+    ]
+  },
+  {
+    "id": "esp32c6",
+    "name": "ESP32-C6",
+    "chipFamily": "ESP32-C6",
+    "width": 240,
+    "height": 240,
+    "rgb565ByteOrder": "big",
+    "assetsOffset": 2162688,
+    "assetsPartitionSize": 2031616,
+    "flashMode": "dio",
+    "flashFreq": "40m",
+    "flashSize": "4MB",
+    "baudRate": 921600,
+    "firmwareParts": [
+      { "name": "bootloader", "path": "./firmware/esp32c6/bootloader.bin", "offset": 4096 },
+      { "name": "partition-table", "path": "./firmware/esp32c6/partition-table.bin", "offset": 32768 },
+      { "name": "app", "path": "./firmware/esp32c6/esp32_desktop_companion.bin", "offset": 65536 }
+    ]
+  }
+]

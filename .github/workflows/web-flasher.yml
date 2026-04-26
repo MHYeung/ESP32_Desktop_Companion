@@ -1,0 +1,79 @@
+name: Web Flasher
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  firmware:
+    name: Firmware (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    container: espressif/idf:release-v5.3
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: esp32s3
+            artifact: esp32s3
+          - target: esp32c3
+            artifact: esp32c3
+          - target: esp32c6
+            artifact: esp32c6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build firmware
+        shell: bash
+        run: |
+          . /opt/esp/idf/export.sh
+          idf.py set-target ${{ matrix.target }}
+          idf.py build
+          mkdir -p firmware/${{ matrix.artifact }}
+          cp build/bootloader/bootloader.bin firmware/${{ matrix.artifact }}/bootloader.bin
+          cp build/partition_table/partition-table.bin firmware/${{ matrix.artifact }}/partition-table.bin
+          cp build/esp32_desktop_companion.bin firmware/${{ matrix.artifact }}/esp32_desktop_companion.bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.artifact }}
+          path: firmware/${{ matrix.artifact }}
+
+  pages:
+    name: Build and Deploy Pages
+    runs-on: ubuntu-latest
+    needs: firmware
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: firmware-*
+          path: web/public/firmware
+      - name: Normalize firmware folders
+        shell: bash
+        run: |
+          for dir in web/public/firmware/firmware-*; do
+            mv "$dir" "web/public/firmware/${dir##*-}"
+          done
+      - name: Build web flasher
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+      - uses: actions/deploy-pages@v4
+        id: deployment
