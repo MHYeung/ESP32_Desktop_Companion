@@ -4,6 +4,14 @@ export interface FirmwarePart {
   name: string;
   path: string;
   offset: number;
+  espImage?: boolean;
+}
+
+export interface FirmwareManifest {
+  parts: FirmwarePart[];
+  flashMode?: FlashModeValues;
+  flashFreq?: FlashFreqValues;
+  flashSize?: FlashSizeValues;
 }
 
 export interface BoardProfile {
@@ -19,6 +27,7 @@ export interface BoardProfile {
   flashFreq: FlashFreqValues;
   flashSize: FlashSizeValues;
   baudRate: number;
+  firmwareManifestPath?: string;
   firmwareParts: FirmwarePart[];
 }
 
@@ -27,5 +36,5 @@ export interface UserFlashConfig {
   password: string;
   timezone: string;
   rotationIntervalSec: number;
-  countdownSeconds: number;
+  pomodoroSeconds: number;
 }

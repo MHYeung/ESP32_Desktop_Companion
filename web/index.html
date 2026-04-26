@@ -10,7 +10,7 @@
       <section class="hero">
         <p class="eyebrow">ESP32 Desktop Companion</p>
         <h1>Flash firmware, Wi-Fi, and your own photos in one flow.</h1>
-        <p id="support">Select a board, add photos, enter local network details, then flash over USB.</p>
+        <p id="support">Select a board, add photos, set Wi-Fi and Pomodoro defaults, then flash over USB.</p>
       </section>
 
       <section class="grid">
@@ -19,7 +19,7 @@
         <label>Wi-Fi Password<input id="password" type="password" maxlength="64" /></label>
         <label>Timezone<input id="timezone" value="UTC0" /></label>
         <label>Photo rotation seconds<input id="rotation" type="number" min="10" value="60" /></label>
-        <label>Countdown seconds<input id="countdown" type="number" min="1" value="300" /></label>
+        <label>Pomodoro duration seconds<input id="pomodoro" type="number" min="300" max="5940" step="300" value="1500" /></label>
       </section>
 
       <section>

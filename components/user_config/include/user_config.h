@@ -9,7 +9,7 @@ typedef struct {
     char password[USER_ASSETS_MAX_PASSWORD_LEN + 1];
     char timezone[USER_ASSETS_MAX_TIMEZONE_LEN + 1];
     uint32_t rotation_interval_sec;
-    uint32_t countdown_seconds;
+    uint32_t pomodoro_seconds;
 } user_config_t;
 
 esp_err_t user_config_load(user_config_t *out_config);

@@ -4,6 +4,8 @@
 
 typedef enum {
     BTN_EVENT_SHORT_PRESS,
+    BTN_EVENT_DOUBLE_PRESS,
+    BTN_EVENT_TRIPLE_PRESS,
     BTN_EVENT_LONG_PRESS
 } button_event_t;
 

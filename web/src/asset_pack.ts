@@ -13,7 +13,7 @@ const OFFSETS = {
   imageCount: 12,
   imageSize: 16,
   rotationInterval: 20,
-  countdownSeconds: 24,
+  pomodoroSeconds: 24,
   assetId: 28,
   flags: 32,
   timezone: 36,
@@ -54,7 +54,7 @@ export function buildAssetPack(
   view.setUint16(OFFSETS.imageCount, images.length, true);
   view.setUint32(OFFSETS.imageSize, imageSize, true);
   view.setUint32(OFFSETS.rotationInterval, config.rotationIntervalSec, true);
-  view.setUint32(OFFSETS.countdownSeconds, config.countdownSeconds, true);
+  view.setUint32(OFFSETS.pomodoroSeconds, config.pomodoroSeconds, true);
   view.setUint32(OFFSETS.assetId, Math.floor(Date.now() / 1000), true);
   view.setUint32(OFFSETS.flags, 0, true);
 

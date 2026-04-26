@@ -29,14 +29,55 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build firmware
         shell: bash
+        env:
+          TARGET_ARTIFACT: ${{ matrix.artifact }}
         run: |
           . /opt/esp/idf/export.sh
           idf.py set-target ${{ matrix.target }}
           idf.py build
-          mkdir -p firmware/${{ matrix.artifact }}
-          cp build/bootloader/bootloader.bin firmware/${{ matrix.artifact }}/bootloader.bin
-          cp build/partition_table/partition-table.bin firmware/${{ matrix.artifact }}/partition-table.bin
-          cp build/esp32_desktop_companion.bin firmware/${{ matrix.artifact }}/esp32_desktop_companion.bin
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import shutil
+
+          target = os.environ["TARGET_ARTIFACT"]
+          out_dir = pathlib.Path("firmware") / target
+          out_dir.mkdir(parents=True, exist_ok=True)
+
+          args = json.loads(pathlib.Path("build/flasher_args.json").read_text())
+          write_args = args.get("write_flash_args", [])
+          flash_files = args.get("flash_files", {})
+
+          def arg_value(flag, default):
+              if flag in write_args:
+                  index = write_args.index(flag)
+                  if index + 1 < len(write_args):
+                      return write_args[index + 1]
+              return default
+
+          parts = []
+          for offset_text, rel_path in sorted(flash_files.items(), key=lambda item: int(item[0], 0)):
+              src = pathlib.Path("build") / rel_path
+              dst_name = pathlib.Path(rel_path).name
+              dst = out_dir / dst_name
+              shutil.copyfile(src, dst)
+              data = dst.read_bytes()
+              parts.append({
+                  "name": pathlib.Path(dst_name).stem,
+                  "path": f"./firmware/{target}/{dst_name}",
+                  "offset": int(offset_text, 0),
+                  "espImage": bool(data and data[0] == 0xE9),
+              })
+
+          manifest = {
+              "flashMode": arg_value("--flash_mode", "dio"),
+              "flashFreq": arg_value("--flash_freq", "40m"),
+              "flashSize": arg_value("--flash_size", "4MB"),
+              "parts": parts,
+          }
+          (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ matrix.artifact }}

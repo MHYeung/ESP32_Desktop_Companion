@@ -4,21 +4,33 @@ import {
   type FlashOptions,
   type IEspLoaderTerminal,
 } from "esptool-js";
-import type { BoardProfile } from "./types";
+import type { BoardProfile, FirmwareManifest, FirmwarePart } from "./types";
 
 export interface FlashCallbacks {
   log: (message: string) => void;
   progress: (percent: number) => void;
 }
 
-async function fetchBinary(path: string): Promise<Uint8Array> {
+async function fetchBinary(part: FirmwarePart): Promise<Uint8Array> {
+  const path = part.path;
   const response = await fetch(path);
   if (!response.ok) throw new Error(`Missing firmware artifact: ${path}`);
   const data = new Uint8Array(await response.arrayBuffer());
-  if (data[0] !== 0xe9) {
+  if (part.espImage !== false && data[0] !== 0xe9) {
     throw new Error(`Firmware artifact is not an ESP image: ${path}`);
   }
   return data;
+}
+
+async function loadFirmwareManifest(profile: BoardProfile): Promise<FirmwareManifest> {
+  if (!profile.firmwareManifestPath) {
+    return { parts: profile.firmwareParts };
+  }
+  const response = await fetch(`${profile.firmwareManifestPath}?t=${Date.now()}`);
+  if (!response.ok) {
+    throw new Error(`Missing firmware manifest: ${profile.firmwareManifestPath}`);
+  }
+  return response.json() as Promise<FirmwareManifest>;
 }
 
 function normalizeChipName(chip: string): string {
@@ -33,9 +45,10 @@ export async function flashDevice(
   const serial = (navigator as Navigator & { serial?: Serial }).serial;
   if (!serial) throw new Error("Web Serial is unavailable. Use Chrome or Edge over HTTPS.");
 
+  const manifest = await loadFirmwareManifest(profile);
   const firmwareParts = await Promise.all(
-    profile.firmwareParts.map(async (part) => {
-      const data = await fetchBinary(part.path);
+    manifest.parts.map(async (part) => {
+      const data = await fetchBinary(part);
       callbacks.log(`Queued ${part.name}: 0x${part.offset.toString(16)} (${data.byteLength} bytes)`);
       return { address: part.offset, data };
     }),
@@ -61,9 +74,9 @@ export async function flashDevice(
 
     const options: FlashOptions = {
       fileArray: firmwareParts,
-      flashMode: profile.flashMode,
-      flashFreq: profile.flashFreq,
-      flashSize: profile.flashSize,
+      flashMode: manifest.flashMode ?? profile.flashMode,
+      flashFreq: manifest.flashFreq ?? profile.flashFreq,
+      flashSize: manifest.flashSize ?? profile.flashSize,
       eraseAll: true,
       compress: true,
       reportProgress: (_fileIndex, written, total) => {

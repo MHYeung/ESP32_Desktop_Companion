@@ -5,4 +5,4 @@
 
 // Starts the UI state machine task
 void ui_app_start(esp_lcd_panel_handle_t display, QueueHandle_t btn_queue,
-                  uint32_t rotation_interval_sec, uint32_t countdown_seconds);
+                  uint32_t rotation_interval_sec, uint32_t pomodoro_seconds);

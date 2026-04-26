@@ -28,7 +28,7 @@ function readConfig(): UserFlashConfig {
     password: input("password").value,
     timezone: input("timezone").value.trim() || "UTC0",
     rotationIntervalSec: Number(input("rotation").value || 60),
-    countdownSeconds: Number(input("countdown").value || 300),
+    pomodoroSeconds: Number(input("pomodoro").value || 1500),
   };
 }
 

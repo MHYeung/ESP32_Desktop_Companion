@@ -12,10 +12,11 @@
     "flashFreq": "40m",
     "flashSize": "4MB",
     "baudRate": 921600,
+    "firmwareManifestPath": "./firmware/esp32s3/manifest.json",
     "firmwareParts": [
-      { "name": "bootloader", "path": "./firmware/esp32s3/bootloader.bin", "offset": 0 },
-      { "name": "partition-table", "path": "./firmware/esp32s3/partition-table.bin", "offset": 32768 },
-      { "name": "app", "path": "./firmware/esp32s3/esp32_desktop_companion.bin", "offset": 65536 }
+      { "name": "bootloader", "path": "./firmware/esp32s3/bootloader.bin", "offset": 0, "espImage": true },
+      { "name": "partition-table", "path": "./firmware/esp32s3/partition-table.bin", "offset": 32768, "espImage": false },
+      { "name": "app", "path": "./firmware/esp32s3/esp32_desktop_companion.bin", "offset": 65536, "espImage": true }
     ]
   },
   {
@@ -31,10 +32,11 @@
     "flashFreq": "40m",
     "flashSize": "4MB",
     "baudRate": 921600,
+    "firmwareManifestPath": "./firmware/esp32c3/manifest.json",
     "firmwareParts": [
-      { "name": "bootloader", "path": "./firmware/esp32c3/bootloader.bin", "offset": 0 },
-      { "name": "partition-table", "path": "./firmware/esp32c3/partition-table.bin", "offset": 32768 },
-      { "name": "app", "path": "./firmware/esp32c3/esp32_desktop_companion.bin", "offset": 65536 }
+      { "name": "bootloader", "path": "./firmware/esp32c3/bootloader.bin", "offset": 0, "espImage": true },
+      { "name": "partition-table", "path": "./firmware/esp32c3/partition-table.bin", "offset": 32768, "espImage": false },
+      { "name": "app", "path": "./firmware/esp32c3/esp32_desktop_companion.bin", "offset": 65536, "espImage": true }
     ]
   },
   {
@@ -50,10 +52,11 @@
     "flashFreq": "40m",
     "flashSize": "4MB",
     "baudRate": 921600,
+    "firmwareManifestPath": "./firmware/esp32c6/manifest.json",
     "firmwareParts": [
-      { "name": "bootloader", "path": "./firmware/esp32c6/bootloader.bin", "offset": 0 },
-      { "name": "partition-table", "path": "./firmware/esp32c6/partition-table.bin", "offset": 32768 },
-      { "name": "app", "path": "./firmware/esp32c6/esp32_desktop_companion.bin", "offset": 65536 }
+      { "name": "bootloader", "path": "./firmware/esp32c6/bootloader.bin", "offset": 0, "espImage": true },
+      { "name": "partition-table", "path": "./firmware/esp32c6/partition-table.bin", "offset": 32768, "espImage": false },
+      { "name": "app", "path": "./firmware/esp32c6/esp32_desktop_companion.bin", "offset": 65536, "espImage": true }
     ]
   }
 ]

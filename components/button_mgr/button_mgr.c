@@ -5,6 +5,8 @@
 
 #define PIN_NUM_BUTTON 1
 #define LONG_PRESS_MS 500
+#define POLL_MS 50
+#define MULTI_TAP_WINDOW_MS 350
 
 static QueueHandle_t btn_queue;
 
@@ -13,6 +15,8 @@ static void button_task(void *arg) {
     gpio_set_pull_mode(PIN_NUM_BUTTON, GPIO_PULLUP_ONLY);
 
     uint32_t press_time = 0;
+    uint32_t release_time = 0;
+    uint8_t tap_count = 0;
     bool is_pressed = false;
 
     while(1) {
@@ -23,14 +27,31 @@ static void button_task(void *arg) {
             press_time = 0;
         } 
         else if (state == 0 && is_pressed) {
-            press_time += 50; 
+            press_time += POLL_MS;
         } 
         else if (state == 1 && is_pressed) {
             is_pressed = false;
-            button_event_t ev = (press_time >= LONG_PRESS_MS) ? BTN_EVENT_LONG_PRESS : BTN_EVENT_SHORT_PRESS;
-            xQueueSend(btn_queue, &ev, 0);
+            if (press_time >= LONG_PRESS_MS) {
+                button_event_t ev = BTN_EVENT_LONG_PRESS;
+                tap_count = 0;
+                release_time = 0;
+                xQueueSend(btn_queue, &ev, 0);
+            } else if (tap_count < 3) {
+                tap_count++;
+                release_time = 0;
+            }
+        } else if (state == 1 && tap_count > 0) {
+            release_time += POLL_MS;
+            if (release_time >= MULTI_TAP_WINDOW_MS || tap_count == 3) {
+                button_event_t ev = BTN_EVENT_SHORT_PRESS;
+                if (tap_count == 2) ev = BTN_EVENT_DOUBLE_PRESS;
+                if (tap_count >= 3) ev = BTN_EVENT_TRIPLE_PRESS;
+                tap_count = 0;
+                release_time = 0;
+                xQueueSend(btn_queue, &ev, 0);
+            }
         }
-        vTaskDelay(pdMS_TO_TICKS(50)); // Poll every 50ms (acts as debouncer)
+        vTaskDelay(pdMS_TO_TICKS(POLL_MS)); // Polling also acts as a simple debouncer.
     }
 }
 

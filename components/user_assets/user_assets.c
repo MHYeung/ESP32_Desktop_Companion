@@ -15,7 +15,7 @@ typedef struct __attribute__((packed)) {
     uint16_t reserved0;
     uint32_t image_size;
     uint32_t rotation_interval_sec;
-    uint32_t countdown_seconds;
+    uint32_t pomodoro_seconds;
     uint32_t asset_id;
     uint32_t flags;
     char timezone[64];
@@ -113,7 +113,7 @@ esp_err_t user_assets_get_config(user_assets_config_t *out_config)
     copy_field(out_config->timezone, sizeof(out_config->timezone), s_header.timezone,
                sizeof(s_header.timezone));
     out_config->rotation_interval_sec = user_assets_rotation_interval_sec();
-    out_config->countdown_seconds = s_header.countdown_seconds;
+    out_config->pomodoro_seconds = s_header.pomodoro_seconds;
     out_config->asset_id = s_header.asset_id;
     return ESP_OK;
 }

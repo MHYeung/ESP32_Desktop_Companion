@@ -52,10 +52,10 @@ void app_main(void)
     } else {
         ESP_LOGW(TAG, "starting UI without Wi-Fi time: %s", esp_err_to_name(cfg_ret));
         user_config.rotation_interval_sec = 60;
-        user_config.countdown_seconds = 5 * 60;
+        user_config.pomodoro_seconds = 25 * 60;
     }
 
     // 4. Start the Application UI Loop
     ui_app_start(display, btn_queue, user_config.rotation_interval_sec,
-                 user_config.countdown_seconds);
+                 user_config.pomodoro_seconds);
 }

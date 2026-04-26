@@ -21,12 +21,15 @@ Use this checklist for each supported board profile before publishing a release.
 ## Firmware Behavior
 
 - Device joins Wi-Fi and starts SNTP without hardcoded credentials.
-- Date/time overlay appears over the gallery image.
+- Large time appears over the gallery image with weekday/date on the next row.
 - Photos rotate at the selected interval.
-- Short press cycles date/time -> countdown -> stopwatch.
-- Long press starts and pauses countdown.
-- Long press starts and pauses stopwatch.
-- No red Pomodoro screen or Pomodoro-specific behavior remains.
+- Short press switches between clock and Pomodoro overlays.
+- Double tap adds 5 minutes to the Pomodoro duration.
+- Triple tap removes 5 minutes from the Pomodoro duration.
+- Long press starts and stops Pomodoro.
+- Pomodoro keeps counting while the clock overlay is visible.
+- Pomodoro resets to the last set duration when it reaches zero.
+- No stopwatch or generic countdown overlay remains.
 
 ## Resource Checks
 
