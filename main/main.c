@@ -13,6 +13,7 @@
 #include "ui_app.h"
 #include "user_assets.h"
 #include "user_config.h"
+#include "weather_client.h"
 
 static const char *TAG = "main";
 
@@ -26,6 +27,7 @@ static void init_system_services(void)
     ESP_ERROR_CHECK(ret);
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+    weather_client_init();
 }
 
 void app_main(void)
@@ -53,9 +55,23 @@ void app_main(void)
         ESP_LOGW(TAG, "starting UI without Wi-Fi time: %s", esp_err_to_name(cfg_ret));
         user_config.rotation_interval_sec = 60;
         user_config.pomodoro_seconds = 25 * 60;
+        user_config.weather_lat_e6 = 0;
+        user_config.weather_lon_e6 = 0;
+        user_assets_config_t ac;
+        if (user_assets_get_config(&ac) == ESP_OK) {
+            if (ac.rotation_interval_sec > 0) {
+                user_config.rotation_interval_sec = ac.rotation_interval_sec;
+            }
+            if (ac.pomodoro_seconds > 0) {
+                user_config.pomodoro_seconds = ac.pomodoro_seconds;
+            }
+            user_config.weather_lat_e6 = ac.weather_lat_e6;
+            user_config.weather_lon_e6 = ac.weather_lon_e6;
+        }
     }
 
     // 4. Start the Application UI Loop
     ui_app_start(display, btn_queue, user_config.rotation_interval_sec,
-                 user_config.pomodoro_seconds);
+                 user_config.pomodoro_seconds, user_config.weather_lat_e6,
+                 user_config.weather_lon_e6);
 }

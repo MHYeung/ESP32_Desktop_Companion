@@ -3,6 +3,7 @@ import { convertImageFile, type ConvertedImage } from "./image_convert";
 import { flashDevice } from "./flash";
 import type { BoardProfile, UserFlashConfig } from "./types";
 import boardProfiles from "../boards/index.json";
+import { presetForTz, TIMEZONE_PRESETS, type TimezonePreset } from "./timezone_presets";
 import "./styles.css";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -23,12 +24,16 @@ function bytes(value: number): string {
 }
 
 function readConfig(): UserFlashConfig {
+  const tz = field("timezone").value.trim() || "UTC0";
+  const geo = presetForTz(tz);
   return {
     ssid: field("ssid").value.trim(),
     password: field("password").value,
-    timezone: field("timezone").value.trim() || "UTC0",
+    timezone: tz,
     rotationIntervalSec: Number(field("rotation").value || 60),
     pomodoroSeconds: Number(field("pomodoro").value || 1500),
+    weatherLatE6: geo.latE6,
+    weatherLonE6: geo.lonE6,
   };
 }
 
@@ -51,6 +56,29 @@ function renderPreviews(): void {
   renderUsage();
 }
 
+function fillTimezoneSelect(): void {
+  const sel = field("timezone") as HTMLSelectElement;
+  const byGroup = new Map<string, TimezonePreset[]>();
+  for (const p of TIMEZONE_PRESETS) {
+    const list = byGroup.get(p.group) ?? [];
+    list.push(p);
+    byGroup.set(p.group, list);
+  }
+  sel.innerHTML = "";
+  for (const [groupName, presets] of byGroup) {
+    const og = document.createElement("optgroup");
+    og.label = groupName;
+    for (const p of presets) {
+      const opt = document.createElement("option");
+      opt.value = p.value;
+      opt.textContent = p.label;
+      og.appendChild(opt);
+    }
+    sel.appendChild(og);
+  }
+  sel.value = TIMEZONE_PRESETS[0]?.value ?? "UTC0";
+}
+
 async function loadProfiles(): Promise<void> {
   profiles = boardProfiles as BoardProfile[];
   const select = $("board") as HTMLSelectElement;
@@ -61,6 +89,7 @@ async function loadProfiles(): Promise<void> {
     convertedImages = [];
     renderPreviews();
   });
+  fillTimezoneSelect();
   renderUsage();
 }
 

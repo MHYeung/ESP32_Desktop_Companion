@@ -115,6 +115,9 @@ esp_err_t user_assets_get_config(user_assets_config_t *out_config)
     out_config->rotation_interval_sec = user_assets_rotation_interval_sec();
     out_config->pomodoro_seconds = s_header.pomodoro_seconds;
     out_config->asset_id = s_header.asset_id;
+    const uint8_t *hdr = (const uint8_t *)&s_header;
+    memcpy(&out_config->weather_lat_e6, hdr + 198, sizeof(int32_t));
+    memcpy(&out_config->weather_lon_e6, hdr + 202, sizeof(int32_t));
     return ESP_OK;
 }
 

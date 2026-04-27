@@ -23,12 +23,13 @@ Use this checklist for each supported board profile before publishing a release.
 - Device joins Wi-Fi and starts SNTP without hardcoded credentials.
 - Large time appears over the gallery image with weekday/date on the next row.
 - Photos rotate at the selected interval.
-- Short press switches between clock and Pomodoro overlays.
+- Short press cycles overlays: clock → Pomodoro → weather → clock.
 - Double tap adds 5 minutes to the Pomodoro duration.
 - Triple tap removes 5 minutes from the Pomodoro duration.
 - Long press starts and stops Pomodoro.
-- Pomodoro keeps counting while the clock overlay is visible.
+- Pomodoro keeps counting while the clock or weather overlay is visible.
 - Pomodoro resets to the last set duration when it reaches zero.
+- Weather overlay shows temperature from Open-Meteo when Wi-Fi is up (coordinates follow flashed timezone preset).
 - No stopwatch or generic countdown overlay remains.
 
 ## Resource Checks

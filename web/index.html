@@ -20,17 +20,27 @@
         <label>Board<select id="board"></select></label>
         <label>Wi-Fi SSID<input id="ssid" autocomplete="off" maxlength="32" /></label>
         <label>Wi-Fi Password<input id="password" type="password" maxlength="64" /></label>
-        <label>Timezone
-          <select id="timezone">
-            <option value="CST-8" selected>Taiwan / Taipei (UTC+8)</option>
-            <option value="JST-9">Japan / Korea (UTC+9)</option>
-            <option value="UTC0">UTC</option>
-            <option value="PST8PDT,M3.2.0,M11.1.0">US Pacific</option>
-            <option value="EST5EDT,M3.2.0,M11.1.0">US Eastern</option>
-          </select>
+        <label>Timezone (place — UTC offset; picks weather location)
+          <select id="timezone"></select>
         </label>
         <label>Photo rotation seconds<input id="rotation" type="number" min="10" value="60" /></label>
         <label>Pomodoro duration seconds<input id="pomodoro" type="number" min="300" max="5940" step="300" value="1500" /></label>
+      </section>
+
+      <section class="help-panel" aria-label="Device controls">
+        <h2>On-device Pomodoro &amp; modes</h2>
+        <p class="help-lead">
+          After flashing, use the companion button to switch views and control the timer. The default Pomodoro length below is loaded on boot; you can still change it on the device.
+        </p>
+        <ul class="help-list">
+          <li><strong>Short press</strong> — Cycle: clock → Pomodoro → weather → clock.</li>
+          <li><strong>Double press</strong> — Add 5 minutes to the Pomodoro length (opens Pomodoro view).</li>
+          <li><strong>Triple press</strong> — Subtract 5 minutes from the Pomodoro length (opens Pomodoro view).</li>
+          <li><strong>Long press</strong> — Start or pause the Pomodoro countdown (opens Pomodoro view).</li>
+        </ul>
+        <p class="help-note">
+          Weather uses <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> at the coordinates for your selected timezone. The device must be on Wi-Fi for live weather.
+        </p>
       </section>
 
       <section>

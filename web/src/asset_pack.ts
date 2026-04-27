@@ -58,6 +58,9 @@ export function buildAssetPack(
   view.setUint32(OFFSETS.assetId, Math.floor(Date.now() / 1000), true);
   view.setUint32(OFFSETS.flags, 0, true);
 
+  view.setInt32(198, config.weatherLatE6 | 0, true);
+  view.setInt32(202, config.weatherLonE6 | 0, true);
+
   writeCString(buffer, OFFSETS.timezone, 64, config.timezone || "UTC0");
   writeCString(buffer, OFFSETS.ssid, 33, config.ssid);
   writeCString(buffer, OFFSETS.password, 65, config.password);

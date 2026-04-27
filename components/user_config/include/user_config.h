@@ -10,6 +10,8 @@ typedef struct {
     char timezone[USER_ASSETS_MAX_TIMEZONE_LEN + 1];
     uint32_t rotation_interval_sec;
     uint32_t pomodoro_seconds;
+    int32_t weather_lat_e6;
+    int32_t weather_lon_e6;
 } user_config_t;
 
 esp_err_t user_config_load(user_config_t *out_config);

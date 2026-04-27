@@ -90,3 +90,40 @@ img {
   border-radius: 16px;
   padding: 16px;
 }
+
+.help-panel h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.help-lead {
+  margin: 0 0 12px;
+  color: #3d4d63;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.help-list {
+  margin: 0 0 12px;
+  padding-left: 1.2rem;
+  line-height: 1.55;
+  color: #2a3545;
+  font-weight: 500;
+}
+
+.help-list strong {
+  font-weight: 800;
+}
+
+.help-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #526070;
+  line-height: 1.5;
+}
+
+.help-note a {
+  color: #243bff;
+  font-weight: 700;
+}

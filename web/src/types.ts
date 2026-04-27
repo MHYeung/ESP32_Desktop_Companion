@@ -37,4 +37,7 @@ export interface UserFlashConfig {
   timezone: string;
   rotationIntervalSec: number;
   pomodoroSeconds: number;
+  /** Microdegrees (int32); written to assets header for Open-Meteo. */
+  weatherLatE6: number;
+  weatherLonE6: number;
 }
