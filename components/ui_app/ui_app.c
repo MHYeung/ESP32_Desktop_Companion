@@ -200,12 +200,12 @@ static void ui_task(void *arg) {
                 format_mmss(text, sizeof(text), pomodoro_remaining);
                 display_draw_text_on_photo_dimmed(display, current_photo, 108, text, 5, 0xFFFF, 45);
             } else {
-                display_draw_text_on_photo_dimmed(display, current_photo, 48, "WEATHER", 2, 0xFFFF,
+                display_draw_text_on_photo_dimmed(display, current_photo, 52, "WEATHER", 2, 0xFFFF,
                                                   45);
-                display_draw_text_on_photo_dimmed(display, current_photo, 68, "----------------", 1,
+                display_draw_text_on_photo_dimmed(display, current_photo, 72, "----------------", 1,
                                                   0xFFFF, 45);
                 if (!wifi_time_is_connected()) {
-                    display_draw_text_on_photo_dimmed(display, current_photo, 100, "NO WIFI", 3,
+                    display_draw_text_on_photo_dimmed(display, current_photo, 108, "NO WIFI", 3,
                                                       0xFFFF, 45);
                 } else {
                     int temp_c = 0, wmo = 0, age = 0;
@@ -217,7 +217,7 @@ static void ui_task(void *arg) {
                         display_draw_text_on_photo_dimmed(display, current_photo, 128, text, 2,
                                                           0xFFFF, 45);
                     } else {
-                        display_draw_text_on_photo_dimmed(display, current_photo, 100, "LOADING", 3,
+                        display_draw_text_on_photo_dimmed(display, current_photo, 108, "LOADING", 3,
                                                           0xFFFF, 45);
                     }
                 }

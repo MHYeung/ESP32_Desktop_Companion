@@ -31,8 +31,8 @@ export const TIMEZONE_PRESETS: TimezonePreset[] = [
     label: "Paris / Berlin — UTC+1 / +2 (DST)",
     ...e6(52.52, 13.405),
   },
-  { group: "Asia Pacific", value: "CST-8", label: "Taipei — UTC+8", ...e6(25.033, 121.565) },
-  { group: "Asia Pacific", value: "JST-9", label: "Tokyo — UTC+9", ...e6(35.6762, 139.6503) },
+  { group: "Asia Pacific", value: "CST-8", label: "CN/ HK/ TW — UTC+8", ...e6(25.033, 121.565) },
+  { group: "Asia Pacific", value: "JST-9", label: "JP/ KR/ SG — UTC+9", ...e6(35.6762, 139.6503) },
   {
     group: "Asia Pacific",
     value: "AEST-10AEDT,M10.1.0,M4.1.0/3",

@@ -1,71 +1,92 @@
 # Desktop Companion
 
-ESP-IDF firmware and a GitHub Pages web flasher for a 240x240 ST7789 desktop photo companion.
+ESP-IDF firmware plus a browser-based flasher for a 240×240 ST7789 photo frame: your photos, clock, Pomodoro timer, and (with Wi‑Fi) a quick weather readout from [Open-Meteo](https://open-meteo.com/).
 
-## User Flow
+---
 
-1. Open the hosted web flasher in Chrome or Edge.
-2. Select the target board profile: ESP32-S3, ESP32-C3, or ESP32-C6.
-3. Upload photos. The browser crops them to 240x240, dims them to 85% brightness, and converts them to RGB565.
-4. Enter local Wi-Fi credentials, timezone, photo rotation interval, and Pomodoro duration.
-5. Connect the ESP32 over USB and flash firmware plus the generated user asset partition.
+## Flashing from the browser (recommended)
 
-Web Serial requires HTTPS, so GitHub Pages is the intended hosting target.
+You need **Chrome or Edge** (Web Serial), a **USB data cable**, and a board this repo supports (e.g. ESP32-S3, ESP32-C3, ESP32-C6—check the **Board** dropdown in the flasher).
 
-## Recovery If Flashing Fails
+1. **Open the flasher**  
+   Use the hosted GitHub Pages build, or run it locally after `cd web && npm ci && npm run build` and serve the `web/dist` folder over **HTTPS** (or `localhost`). Plain `file://` URLs will not expose serial.
 
-`invalid header: 0xffffffff` means the ROM is reading erased flash where the bootloader should be. The board is not bricked.
+2. **Pick the board**  
+   Choose the profile that matches your chip. The flasher uses the right firmware manifest and asset size for that target.
 
-The web flasher reads `manifest.json` generated from ESP-IDF's `flasher_args.json`, so the bootloader, partition table, and app offsets come from the same build that produced the binaries. If you see this error, redeploy the latest web flasher, hard refresh the page, hold BOOT while connecting if needed, and flash again.
+   ![Board profile selection](docs/board_selection.png)
 
-## Firmware Behavior
+3. **Add photos**  
+   Select one or more images; they’re cropped to 240×240, slightly dimmed, and converted to RGB565. You need at least one photo before flashing.
 
-- Gallery is the base screen.
-- Photos rotate every 60 seconds by default, or by the value entered in the web flasher.
-- The default overlay shows large time with the weekday/date below it.
-- Short button press switches between the clock overlay and custom Pomodoro overlay.
-- Double tap adds 5 minutes to the Pomodoro duration.
-- Triple tap removes 5 minutes from the Pomodoro duration, clamped at 5 minutes.
-- Long press starts or stops the Pomodoro timer.
-- The Pomodoro timer keeps counting while the clock/photo overlay is visible.
-- When Pomodoro reaches zero, it stops and resets to the last user-set duration.
+   ![Photo upload](docs/photos_selection.png)
 
-## Flash Layout
+4. **Wi‑Fi, timezone, and defaults**  
+   Enter your **SSID** and **password**, choose a **timezone** (this sets both POSIX TZ for the clock and approximate coordinates for weather), then set **photo rotation** and **Pomodoro length** if you want something other than the defaults.
 
-The web flasher writes a generated `assets` data partition after the app:
+   ![Wi‑Fi and timezone](docs/wifi_tz_selection.png)
 
-| Partition | Offset | Size | Purpose |
-|---|---:|---:|---|
-| `nvs` | `0x9000` | `0x6000` | Wi-Fi/runtime config |
-| `phy_init` | `0xf000` | `0x1000` | RF calibration |
-| `factory` | `0x10000` | `2M` | ESP-IDF app |
-| `assets` | `0x210000` | `0x1F0000` | Header + RGB565 photos |
+5. **Connect USB and flash**  
+   Plug in the board, click **Generate and Flash**, and pick the serial port when the browser asks. Let it run to 100%; the device resets when done.
 
-Each 240x240 RGB565 photo is `240 * 240 * 2 = 115200` bytes. The current 0x1F0000 asset partition fits 17 photos after the 256-byte header.
+   ![Flash action](docs/board_confirmation.png)
 
-## Asset Header
+**First boot:** the device reads Wi‑Fi and settings from the flashed assets partition and copies them into NVS where needed. If something looks wrong after a flash, do a hard refresh on the flasher page so you aren’t using a cached old manifest.
 
-The generated asset image starts with a 256-byte little-endian header:
+---
 
-- Magic: `DCAS`
-- Format version: `1`
-- Screen geometry and image count
-- Rotation interval and Pomodoro duration
-- Asset ID for one-time migration into NVS
-- Timezone, SSID, and password strings
+## If flashing fails
 
-Credentials are convenient to flash this way, but they are not secret unless you later enable flash encryption.
+`invalid header: 0xffffffff` means the ROM is reading erased flash where the bootloader should be—the board is usually **not** bricked.
 
-## Development
+The web app’s offsets come from the same ESP-IDF build as the bundled binaries (`flasher_args.json` → manifest). Fix: deploy or pull the **latest** flasher + firmware bundle, hard-refresh the page, try again, and use **BOOT + reset** to force download mode if your board needs it.
 
-Firmware build:
+---
+
+## On-device behavior (firmware)
+
+- **Gallery** is the base screen; photos rotate at the interval you flashed.
+- **Clock overlay:** large time, weekday and date (leading `*` on the date if Wi‑Fi time isn’t synced yet).
+- **Short press** cycles: **clock → Pomodoro → weather → clock**.
+- **Pomodoro:** double press **+5 min**, triple press **−5 min** (minimum 5 min), long press **start/stop**. The timer keeps running while you’re on the clock or weather screen.
+- **Weather:** needs Wi‑Fi; fetches current temperature and a short condition label via HTTPS. Refreshes when you open that screen and about every ten minutes while you stay on it.
+
+Hardware assembly and a release checklist live in [`docs/HARDWARE_TEST.md`](docs/HARDWARE_TEST.md).
+
+---
+
+## Flash layout
+
+The generated **assets** partition sits after the factory app:
+
+| Partition | Offset   | Size     | Purpose |
+|-----------|----------|----------|---------|
+| `nvs`     | `0x9000` | `0x6000` | Wi‑Fi / runtime config |
+| `phy_init`| `0xf000` | `0x1000` | RF calibration |
+| `factory` | `0x10000`| `2M`     | ESP-IDF app |
+| `assets`  | `0x210000` | `0x1F0000` | 256-byte header + RGB565 images |
+
+Each 240×240 RGB565 image is `115200` bytes. The current assets region fits **17** photos after the header.
+
+### Asset header (256 bytes, little-endian)
+
+- Magic `DCAS`, format version, screen size, image count  
+- Rotation interval, Pomodoro seconds, asset ID (NVS migration)  
+- Timezone string, SSID, password  
+- Weather latitude/longitude (µ°, stored in the reserved tail—see `web/src/asset_pack.ts`)
+
+Credentials in flash are convenient for a desk toy; they are **not** secret unless you enable flash encryption.
+
+---
+
+## Developing firmware locally
 
 ```bash
-idf.py set-target esp32s3
+idf.py set-target esp32s3   # or esp32c3 / esp32c6
 idf.py build
 ```
 
-Web flasher build:
+## Developing / hosting the web flasher
 
 ```bash
 cd web
@@ -73,6 +94,10 @@ npm ci
 npm run build
 ```
 
-The GitHub Actions workflow builds S3/C3/C6 firmware artifacts, converts ESP-IDF `flasher_args.json` into per-board web manifests, copies everything into the web app, and deploys GitHub Pages.
+CI builds firmware for supported targets, turns `flasher_args.json` into per-board web manifests, copies binaries into the site, and can deploy GitHub Pages.
 
-Before changing storage or Wi-Fi behavior, read the ESP-IDF Programming Guide sections for Partition Tables, NVS, `esp_partition`, and Wi-Fi station provisioning/storage.
+Before changing partitions, NVS, or Wi‑Fi storage, skim the ESP-IDF docs for **partition tables**, **NVS**, **`esp_partition`**, and **Wi‑Fi station**.
+
+### Customizing timezone / city list
+
+Edit **`web/src/timezone_presets.ts`** (`TIMEZONE_PRESETS`: label, POSIX `value`, group, and lat/lon for weather).
