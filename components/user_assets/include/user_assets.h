@@ -6,7 +6,8 @@
 #include "esp_err.h"
 
 #define USER_ASSETS_MAGIC "DCAS"
-#define USER_ASSETS_FORMAT_VERSION 1
+/** Written by current web flasher; reader accepts v1 for migration. */
+#define USER_ASSETS_FORMAT_VERSION 2
 #define USER_ASSETS_HEADER_SIZE 256
 #define USER_ASSETS_MAX_SSID_LEN 32
 #define USER_ASSETS_MAX_PASSWORD_LEN 64
@@ -17,7 +18,10 @@ typedef struct {
     char password[USER_ASSETS_MAX_PASSWORD_LEN + 1];
     char timezone[USER_ASSETS_MAX_TIMEZONE_LEN + 1];
     uint32_t rotation_interval_sec;
-    uint32_t pomodoro_seconds;
+    uint32_t pomodoro_focus_sec;
+    uint32_t pomodoro_short_break_sec;
+    uint32_t pomodoro_long_break_sec;
+    uint32_t pomodoro_long_break_every;
     uint32_t asset_id;
     int32_t weather_lat_e6;
     int32_t weather_lon_e6;

@@ -15,13 +15,18 @@ typedef struct __attribute__((packed)) {
     uint16_t reserved0;
     uint32_t image_size;
     uint32_t rotation_interval_sec;
-    uint32_t pomodoro_seconds;
+    uint32_t pomodoro_focus_sec;
     uint32_t asset_id;
     uint32_t flags;
     char timezone[64];
     char ssid[33];
     char password[65];
-    uint8_t reserved[58];
+    int32_t weather_lat_e6;
+    int32_t weather_lon_e6;
+    uint32_t pomodoro_short_break_sec;
+    uint32_t pomodoro_long_break_sec;
+    uint32_t pomodoro_long_break_every;
+    uint8_t pad[38];
 } user_assets_header_t;
 
 _Static_assert(sizeof(user_assets_header_t) == USER_ASSETS_HEADER_SIZE,
@@ -56,7 +61,7 @@ esp_err_t user_assets_init(void)
                                            sizeof(s_header)), TAG,
                         "read assets header");
     if (memcmp(s_header.magic, USER_ASSETS_MAGIC, sizeof(s_header.magic)) != 0 ||
-        s_header.version != USER_ASSETS_FORMAT_VERSION ||
+        (s_header.version != 1 && s_header.version != USER_ASSETS_FORMAT_VERSION) ||
         s_header.header_size != USER_ASSETS_HEADER_SIZE) {
         ESP_LOGW(TAG, "assets partition has no valid desktop companion header");
         return ESP_ERR_INVALID_VERSION;
@@ -70,7 +75,8 @@ esp_err_t user_assets_init(void)
     }
 
     s_ready = true;
-    ESP_LOGI(TAG, "loaded %u photos from assets partition", s_header.image_count);
+    ESP_LOGI(TAG, "loaded %u photos from assets partition (format v%u)", s_header.image_count,
+             (unsigned)s_header.version);
     return ESP_OK;
 }
 
@@ -113,11 +119,29 @@ esp_err_t user_assets_get_config(user_assets_config_t *out_config)
     copy_field(out_config->timezone, sizeof(out_config->timezone), s_header.timezone,
                sizeof(s_header.timezone));
     out_config->rotation_interval_sec = user_assets_rotation_interval_sec();
-    out_config->pomodoro_seconds = s_header.pomodoro_seconds;
     out_config->asset_id = s_header.asset_id;
-    const uint8_t *hdr = (const uint8_t *)&s_header;
-    memcpy(&out_config->weather_lat_e6, hdr + 198, sizeof(int32_t));
-    memcpy(&out_config->weather_lon_e6, hdr + 202, sizeof(int32_t));
+    out_config->weather_lat_e6 = s_header.weather_lat_e6;
+    out_config->weather_lon_e6 = s_header.weather_lon_e6;
+
+    uint32_t focus = s_header.pomodoro_focus_sec;
+    out_config->pomodoro_focus_sec = focus > 0 ? focus : (uint32_t)(25 * 60);
+
+    if (s_header.version >= 2) {
+        out_config->pomodoro_short_break_sec = s_header.pomodoro_short_break_sec;
+        out_config->pomodoro_long_break_sec = s_header.pomodoro_long_break_sec;
+        out_config->pomodoro_long_break_every = s_header.pomodoro_long_break_every;
+    }
+
+    if (out_config->pomodoro_short_break_sec == 0) {
+        out_config->pomodoro_short_break_sec = 300;
+    }
+    if (out_config->pomodoro_long_break_sec == 0) {
+        out_config->pomodoro_long_break_sec = 900;
+    }
+    if (out_config->pomodoro_long_break_every == 0) {
+        out_config->pomodoro_long_break_every = 4;
+    }
+
     return ESP_OK;
 }
 

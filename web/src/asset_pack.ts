@@ -2,7 +2,7 @@ import type { BoardProfile, UserFlashConfig } from "./types";
 import type { ConvertedImage } from "./image_convert";
 
 export const ASSET_HEADER_SIZE = 256;
-export const ASSET_FORMAT_VERSION = 1;
+export const ASSET_FORMAT_VERSION = 2;
 
 const OFFSETS = {
   magic: 0,
@@ -13,12 +13,17 @@ const OFFSETS = {
   imageCount: 12,
   imageSize: 16,
   rotationInterval: 20,
-  pomodoroSeconds: 24,
+  pomodoroFocusSec: 24,
   assetId: 28,
   flags: 32,
   timezone: 36,
   ssid: 100,
   password: 133,
+  weatherLatE6: 198,
+  weatherLonE6: 202,
+  pomodoroShortBreakSec: 206,
+  pomodoroLongBreakSec: 210,
+  pomodoroLongBreakEvery: 214,
 };
 
 function writeCString(target: Uint8Array, offset: number, maxLen: number, value: string): void {
@@ -52,16 +57,20 @@ export function buildAssetPack(
   view.setUint16(OFFSETS.width, profile.width, true);
   view.setUint16(OFFSETS.height, profile.height, true);
   view.setUint16(OFFSETS.imageCount, images.length, true);
+  view.setUint16(14, 0, true);
   view.setUint32(OFFSETS.imageSize, imageSize, true);
   view.setUint32(OFFSETS.rotationInterval, config.rotationIntervalSec, true);
-  view.setUint32(OFFSETS.pomodoroSeconds, config.pomodoroSeconds, true);
+  view.setUint32(OFFSETS.pomodoroFocusSec, config.pomodoroFocusSec, true);
   view.setUint32(OFFSETS.assetId, Math.floor(Date.now() / 1000), true);
   view.setUint32(OFFSETS.flags, 0, true);
 
-  view.setInt32(198, config.weatherLatE6 | 0, true);
-  view.setInt32(202, config.weatherLonE6 | 0, true);
+  view.setInt32(OFFSETS.weatherLatE6, config.weatherLatE6 | 0, true);
+  view.setInt32(OFFSETS.weatherLonE6, config.weatherLonE6 | 0, true);
+  view.setUint32(OFFSETS.pomodoroShortBreakSec, config.pomodoroShortBreakSec, true);
+  view.setUint32(OFFSETS.pomodoroLongBreakSec, config.pomodoroLongBreakSec, true);
+  view.setUint32(OFFSETS.pomodoroLongBreakEvery, config.pomodoroLongBreakEvery, true);
 
-  writeCString(buffer, OFFSETS.timezone, 64, config.timezone || "UTC0");
+  writeCString(buffer, OFFSETS.timezone, 64, "");
   writeCString(buffer, OFFSETS.ssid, 33, config.ssid);
   writeCString(buffer, OFFSETS.password, 65, config.password);
 

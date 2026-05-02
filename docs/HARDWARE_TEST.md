@@ -14,7 +14,7 @@ Use this checklist for each supported board profile before publishing a release.
 1. Open the GitHub Pages flasher.
 2. Select the matching board profile.
 3. Upload 1, 3, and maximum-count photo sets in separate runs.
-4. Enter a known-good SSID, password, and timezone.
+4. Enter a known-good SSID and password.
 5. Flash and confirm the progress reaches 100%.
 6. Confirm the board resets and logs a valid asset header.
 
@@ -24,12 +24,12 @@ Use this checklist for each supported board profile before publishing a release.
 - Large time appears over the gallery image with weekday/date on the next row.
 - Photos rotate at the selected interval.
 - Short press cycles overlays: clock → Pomodoro → weather → clock.
-- Double tap adds 5 minutes to the Pomodoro duration.
-- Triple tap removes 5 minutes from the Pomodoro duration.
-- Long press starts and stops Pomodoro.
-- Pomodoro keeps counting while the clock or weather overlay is visible.
-- Pomodoro resets to the last set duration when it reaches zero.
-- Weather overlay shows temperature from Open-Meteo when Wi-Fi is up (coordinates follow flashed timezone preset).
+- Double tap adds 5 minutes to the **focus** session length.
+- Triple tap removes 5 minutes from the **focus** session length.
+- Long press pauses or resumes the current Pomodoro phase.
+- Pomodoro keeps counting while the clock or weather overlay is visible when running.
+- Pomodoro auto-advances focus → short break → focus (long break every N focus sessions per flashed config).
+- Weather overlay shows temperature and condition glyph from Open-Meteo when Wi-Fi is up (coordinates from IP geolocation).
 - No stopwatch or generic countdown overlay remains.
 
 ## Resource Checks

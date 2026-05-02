@@ -12,39 +12,55 @@
     <main>
       <section class="hero">
         <p class="eyebrow">ESP32 Desktop Companion</p>
-        <h1>Flash firmware, Wi-Fi, and your own photos in one flow.</h1>
-        <p id="support">Select a board, add photos, set Wi-Fi and Pomodoro defaults, then flash over USB.</p>
+        <h1>Flash firmware, Wi-Fi, photos, and Pomodoro defaults in one flow.</h1>
+        <p id="support">
+          Pick your board, enter Wi‑Fi credentials, tune Pomodoro if you like, add photos, then flash over USB. After first boot on Wi‑Fi, the device sets the clock and weather location from your network IP—no manual timezone.
+        </p>
       </section>
 
-      <section class="grid">
-        <label>Board<select id="board"></select></label>
-        <label>Wi-Fi SSID<input id="ssid" autocomplete="off" maxlength="32" /></label>
-        <label>Wi-Fi Password<input id="password" type="password" maxlength="64" /></label>
-        <label>Timezone (place — UTC offset; picks weather location)
-          <select id="timezone"></select>
-        </label>
-        <label>Photo rotation seconds<input id="rotation" type="number" min="10" value="60" /></label>
-        <label>Pomodoro duration seconds<input id="pomodoro" type="number" min="300" max="5940" step="300" value="1500" /></label>
+      <section class="panel">
+        <h2 class="panel-title">Device &amp; Wi‑Fi</h2>
+        <div class="grid">
+          <label>Board<select id="board"></select></label>
+          <label>Wi‑Fi SSID<input id="ssid" autocomplete="off" maxlength="32" placeholder="Required" /></label>
+          <label>Wi‑Fi password<input id="password" type="password" maxlength="64" /></label>
+          <label>Photo rotation (seconds)<input id="rotation" type="number" min="10" value="60" /></label>
+        </div>
       </section>
+
+      <p class="callout" role="note">
+        <strong>Clock &amp; weather region.</strong> On Wi‑Fi, the firmware queries your public IP (same request as weather) and applies the current UTC offset for local time, including seasonal DST when the geolocation API reports an updated offset. VPNs and captive portals move your apparent location.
+      </p>
+
+      <fieldset class="pomodoro-fieldset">
+        <legend>Pomodoro (defaults on boot)</legend>
+        <div class="grid pomodoro-grid">
+          <label>Focus session (seconds)<input id="pomodoro_focus" type="number" min="300" max="5940" step="60" value="1500" /></label>
+          <label>Short break (seconds)<input id="pomodoro_short" type="number" min="60" max="3600" step="60" value="300" /></label>
+          <label>Long break (seconds)<input id="pomodoro_long" type="number" min="60" max="7200" step="60" value="900" /></label>
+          <label>Long break every N focus sessions<input id="pomodoro_every" type="number" min="1" max="12" value="4" /></label>
+        </div>
+      </fieldset>
 
       <section class="help-panel" aria-label="Device controls">
-        <h2>On-device Pomodoro &amp; modes</h2>
+        <h2>On-device controls</h2>
         <p class="help-lead">
-          After flashing, use the companion button to switch views and control the timer. The default Pomodoro length below is loaded on boot; you can still change it on the device.
+          Use the companion button to switch views and run the timer. Double/triple press adjusts only the focus session (+/− 5 minutes).
         </p>
         <ul class="help-list">
           <li><strong>Short press</strong> — Cycle: clock → Pomodoro → weather → clock.</li>
-          <li><strong>Double press</strong> — Add 5 minutes to the Pomodoro length (opens Pomodoro view).</li>
-          <li><strong>Triple press</strong> — Subtract 5 minutes from the Pomodoro length (opens Pomodoro view).</li>
-          <li><strong>Long press</strong> — Start or pause the Pomodoro countdown (opens Pomodoro view).</li>
+          <li><strong>Double press</strong> — Add 5 minutes to the focus session (opens Pomodoro).</li>
+          <li><strong>Triple press</strong> — Subtract 5 minutes from the focus session (opens Pomodoro).</li>
+          <li><strong>Long press</strong> — Pause or resume the current Pomodoro phase.</li>
         </ul>
         <p class="help-note">
-          Weather uses <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> at the coordinates for your selected timezone. The device must be on Wi-Fi for live weather.
+          Weather uses <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> with coordinates from <a href="https://ipapi.co/" rel="noopener">ipapi.co</a>. The device must be on Wi‑Fi for live weather and IP-based local time.
         </p>
       </section>
 
-      <section>
-        <label class="upload">Photos<input id="photos" type="file" accept="image/*" multiple /></label>
+      <section class="panel photos-panel">
+        <h2 class="panel-title">Photos</h2>
+        <label class="upload">Images<input id="photos" type="file" accept="image/*" multiple /></label>
         <p id="usage"></p>
         <div id="previews" class="previews"></div>
       </section>

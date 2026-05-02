@@ -1,4 +1,5 @@
 #include "wifi_time.h"
+
 #include "esp_check.h"
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -8,7 +9,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdbool.h>
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +16,7 @@
 
 static const char *TAG = "wifi_time";
 static bool s_wifi_connected;
-static char s_timezone[32];
+static char s_timezone[40];
 
 static void wifi_event_handler(void *arg, esp_event_base_t event_base,
                                int32_t event_id, void *event_data)
@@ -31,35 +31,8 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-static const char *normalize_timezone(const char *input)
+esp_err_t wifi_time_init(const char *ssid, const char *pass)
 {
-    if (input == NULL || input[0] == '\0') {
-        return "UTC0";
-    }
-
-    char compact[16] = {0};
-    size_t out = 0;
-    for (size_t i = 0; input[i] != '\0' && out < sizeof(compact) - 1; i++) {
-        if (input[i] != ' ') {
-            compact[out++] = (char)toupper((unsigned char)input[i]);
-        }
-    }
-
-    int hours = 0;
-    if (sscanf(compact, "UTC+%d", &hours) == 1 ||
-        sscanf(compact, "GMT+%d", &hours) == 1) {
-        snprintf(s_timezone, sizeof(s_timezone), "UTC-%d", hours);
-        return s_timezone;
-    }
-    if (sscanf(compact, "UTC-%d", &hours) == 1 ||
-        sscanf(compact, "GMT-%d", &hours) == 1) {
-        snprintf(s_timezone, sizeof(s_timezone), "UTC+%d", hours);
-        return s_timezone;
-    }
-    return input;
-}
-
-esp_err_t wifi_time_init(const char *ssid, const char *pass, const char *timezone) {
     s_wifi_connected = false;
     esp_netif_create_default_wifi_sta();
 
@@ -73,8 +46,8 @@ esp_err_t wifi_time_init(const char *ssid, const char *pass, const char *timezon
                         TAG, "wifi got ip handler");
 
     wifi_config_t wifi_config = {0};
-    strlcpy((char*)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
-    strlcpy((char*)wifi_config.sta.password, pass, sizeof(wifi_config.sta.password));
+    strlcpy((char *)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
+    strlcpy((char *)wifi_config.sta.password, pass, sizeof(wifi_config.sta.password));
 
     ESP_RETURN_ON_ERROR(esp_wifi_set_storage(WIFI_STORAGE_FLASH), TAG, "wifi storage");
     ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG, "wifi mode");
@@ -87,9 +60,42 @@ esp_err_t wifi_time_init(const char *ssid, const char *pass, const char *timezon
     esp_sntp_setservername(0, "pool.ntp.org");
     esp_sntp_init();
 
-    setenv("TZ", normalize_timezone(timezone), 1);
+    strlcpy(s_timezone, "UTC0", sizeof(s_timezone));
+    setenv("TZ", s_timezone, 1);
     tzset();
     return ESP_OK;
+}
+
+void wifi_time_set_tz_from_utc_offset_sec(int32_t utc_offset_sec)
+{
+    /*
+     * ipapi.co: local time = UTC + utc_offset_sec (seconds).
+     * Match legacy POSIX TZ convention used by normalize_timezone():
+     * e.g. east +8h -> TZ string "UTC-8"; west -5h -> "UTC+5".
+     */
+    int64_t sec = utc_offset_sec;
+    bool east = sec >= 0;
+    int64_t a = east ? sec : -sec;
+    int hh = (int)(a / 3600);
+    int mm = (int)((a % 3600) / 60);
+
+    if (mm != 0) {
+        if (east) {
+            snprintf(s_timezone, sizeof(s_timezone), "UTC-%d:%02d", hh, mm);
+        } else {
+            snprintf(s_timezone, sizeof(s_timezone), "UTC+%d:%02d", hh, mm);
+        }
+    } else {
+        if (east) {
+            snprintf(s_timezone, sizeof(s_timezone), "UTC-%d", hh);
+        } else {
+            snprintf(s_timezone, sizeof(s_timezone), "UTC+%d", hh);
+        }
+    }
+
+    setenv("TZ", s_timezone, 1);
+    tzset();
+    ESP_LOGI(TAG, "TZ from utc_offset=%lds -> %s", (long)utc_offset_sec, s_timezone);
 }
 
 bool wifi_time_is_connected(void)

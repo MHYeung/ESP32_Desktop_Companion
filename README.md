@@ -21,10 +21,10 @@ You need **Chrome or Edge** (Web Serial), a **USB data cable**, and a board this
 
    ![Photo upload](docs/photos_selection.png)
 
-4. **Wi‑Fi, timezone, and defaults**  
-   Enter your **SSID** and **password**, choose a **timezone** (this sets both POSIX TZ for the clock and approximate coordinates for weather), then set **photo rotation** and **Pomodoro length** if you want something other than the defaults.
+4. **Wi‑Fi and Pomodoro**  
+   Enter **SSID** and **password**, set **photo rotation** and Pomodoro defaults if you want something other than the stock values.
 
-   ![Wi‑Fi and timezone](docs/wifi_tz_selection.png)
+   ![Wi‑Fi and defaults](docs/wifi_tz_selection.png)
 
 5. **Connect USB and flash**  
    Plug in the board, click **Generate and Flash**, and pick the serial port when the browser asks. Let it run to 100%; the device resets when done.
@@ -46,10 +46,10 @@ The web app’s offsets come from the same ESP-IDF build as the bundled binaries
 ## On-device behavior (firmware)
 
 - **Gallery** is the base screen; photos rotate at the interval you flashed.
-- **Clock overlay:** large time, weekday and date (leading `*` on the date if Wi‑Fi time isn’t synced yet).
+- **Clock:** local time uses **UTC offset from IP geolocation** (same HTTPS lookup as weather). On first successful Wi‑Fi, the device sets `TZ` from the API’s `utc_offset` (current offset, including active DST when the service reports it). A **daily** refresh re-fetches geolocation so long-running devices can track offset changes. Until the first lookup completes, the clock may show **UTC**. VPNs and captive portals skew the result.
 - **Short press** cycles: **clock → Pomodoro → weather → clock**.
-- **Pomodoro:** double press **+5 min**, triple press **−5 min** (minimum 5 min), long press **start/stop**. The timer keeps running while you’re on the clock or weather screen.
-- **Weather:** needs Wi‑Fi; fetches current temperature and a short condition label via HTTPS. Refreshes when you open that screen and about every ten minutes while you stay on it.
+- **Pomodoro:** phases auto-chain **focus → short break → focus …** with a **long break** every **N** completed focus sessions (defaults from the flasher). Double press **+5 min** and triple press **−5 min** adjust **focus length** only (minimum 5 min). Long press **pause/resume** the current phase without resetting the countdown. The timer keeps advancing while you’re on the clock or weather screen when running.
+- **Weather:** needs Wi‑Fi; resolves approximate coordinates from your public IP (HTTPS), then fetches temperature, condition code, and an on-screen glyph via Open‑Meteo. Refreshes when you open that screen and about every ten minutes while you stay on it.
 
 Hardware assembly and a release checklist live in [`docs/HARDWARE_TEST.md`](docs/HARDWARE_TEST.md).
 
@@ -70,10 +70,11 @@ Each 240×240 RGB565 image is `115200` bytes. The current assets region fits **1
 
 ### Asset header (256 bytes, little-endian)
 
-- Magic `DCAS`, format version, screen size, image count  
-- Rotation interval, Pomodoro seconds, asset ID (NVS migration)  
-- Timezone string, SSID, password  
-- Weather latitude/longitude (µ°, stored in the reserved tail—see `web/src/asset_pack.ts`)
+- Magic `DCAS`, format version (**v2** current; **v1** still readable), screen size, image count  
+- Rotation interval, Pomodoro **focus** seconds, asset ID (NVS migration)  
+- Pomodoro **short break**, **long break**, **long break every N** (v2; v1 assets use firmware defaults)  
+- Timezone string, SSID, password (timezone slot is **legacy/empty** in current flashes; the device does not use it for the clock)  
+- Optional weather latitude/longitude (µ°; normally **0** — weather uses IP geolocation on device)
 
 Credentials in flash are convenient for a desk toy; they are **not** secret unless you enable flash encryption.
 
@@ -98,6 +99,8 @@ CI builds firmware for supported targets, turns `flasher_args.json` into per-boa
 
 Before changing partitions, NVS, or Wi‑Fi storage, skim the ESP-IDF docs for **partition tables**, **NVS**, **`esp_partition`**, and **Wi‑Fi station**.
 
-### Customizing timezone / city list
+### Local time and IP geolocation
 
-Edit **`web/src/timezone_presets.ts`** (`TIMEZONE_PRESETS`: label, POSIX `value`, group, and lat/lon for weather).
+The firmware does **not** use a flashed timezone. After Wi‑Fi connects, it calls **ipapi.co** and applies the returned **`utc_offset`** (seconds) to the C library `TZ` (with **daily** re-fetch to pick up **DST** changes). For source and rate limits, see [ipapi.co](https://ipapi.co/).
+
+If you need a different policy (e.g. fixed UTC), change [`wifi_time_set_tz_from_utc_offset_sec`](components/wifi_time/wifi_time.c) and/or the refresh cadence in [`main.c`](main/main.c).

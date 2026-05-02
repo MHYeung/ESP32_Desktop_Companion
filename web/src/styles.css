@@ -14,13 +14,39 @@ main {
   padding: 32px 20px 48px;
 }
 
-.hero, section {
+.hero,
+section,
+.panel {
   background: white;
   border: 1px solid #dfe5ef;
   border-radius: 20px;
   padding: 24px;
   margin-bottom: 20px;
   box-shadow: 0 10px 30px rgba(22, 32, 51, 0.06);
+}
+
+.panel-title {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a2744;
+}
+
+.callout {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid #c8d4f5;
+  background: linear-gradient(135deg, #f4f7ff 0%, #eef3ff 100%);
+  color: #2a3545;
+  font-weight: 500;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.callout strong {
+  font-weight: 800;
+  color: #243bff;
 }
 
 .eyebrow {
@@ -126,4 +152,24 @@ img {
 .help-note a {
   color: #243bff;
   font-weight: 700;
+}
+
+.pomodoro-fieldset {
+  border: 1px solid #dfe5ef;
+  border-radius: 20px;
+  padding: 20px 24px 24px;
+  margin-bottom: 20px;
+  background: white;
+  box-shadow: 0 10px 30px rgba(22, 32, 51, 0.06);
+}
+
+.pomodoro-fieldset legend {
+  padding: 0 10px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #243bff;
+}
+
+.pomodoro-grid {
+  margin-top: 8px;
 }

@@ -29,3 +29,9 @@ void display_draw_text_on_photo(esp_lcd_panel_handle_t panel, size_t photo_index
 void display_draw_text_on_photo_dimmed(esp_lcd_panel_handle_t panel, size_t photo_index,
                                        int y, const char *text, int scale,
                                        uint16_t color, uint8_t brightness_percent);
+
+/** Blit RGB565 sprite onto photo slice; pixels equal to `0xF81F` keep the dimmed photo (chroma key). */
+void display_draw_sprite_on_photo_dimmed(esp_lcd_panel_handle_t panel, size_t photo_index,
+                                         int x, int y, int w, int h,
+                                         const uint16_t *sprite,
+                                         uint8_t brightness_percent);

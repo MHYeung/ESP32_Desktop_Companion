@@ -34,10 +34,14 @@ export interface BoardProfile {
 export interface UserFlashConfig {
   ssid: string;
   password: string;
-  timezone: string;
   rotationIntervalSec: number;
-  pomodoroSeconds: number;
-  /** Microdegrees (int32); written to assets header for Open-Meteo. */
+  /** Focus/work phase length (seconds). */
+  pomodoroFocusSec: number;
+  pomodoroShortBreakSec: number;
+  pomodoroLongBreakSec: number;
+  /** Take a long break after this many completed focus sessions. */
+  pomodoroLongBreakEvery: number;
+  /** Legacy header slots; weather uses IP geolocation on device (keep 0). */
   weatherLatE6: number;
   weatherLonE6: number;
 }

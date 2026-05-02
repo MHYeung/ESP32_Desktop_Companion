@@ -12,9 +12,12 @@ static const char *NVS_NS = "user_cfg";
 static void apply_defaults(user_config_t *cfg)
 {
     memset(cfg, 0, sizeof(*cfg));
-    strlcpy(cfg->timezone, "UTC0", sizeof(cfg->timezone));
+    strlcpy(cfg->timezone, "UTC+0", sizeof(cfg->timezone));
     cfg->rotation_interval_sec = 60;
-    cfg->pomodoro_seconds = 25 * 60;
+    cfg->pomodoro_focus_sec = 25 * 60;
+    cfg->pomodoro_short_break_sec = 300;
+    cfg->pomodoro_long_break_sec = 900;
+    cfg->pomodoro_long_break_every = 4;
     cfg->weather_lat_e6 = 0;
     cfg->weather_lon_e6 = 0;
 }
@@ -41,7 +44,10 @@ static esp_err_t load_from_nvs(user_config_t *cfg, uint32_t *asset_id)
     if (err == ESP_OK) err = read_string(nvs, "pass", cfg->password, sizeof(cfg->password));
     if (err == ESP_OK) err = read_string(nvs, "tz", cfg->timezone, sizeof(cfg->timezone));
     if (err == ESP_OK) (void)nvs_get_u32(nvs, "rot", &cfg->rotation_interval_sec);
-    if (err == ESP_OK) (void)nvs_get_u32(nvs, "pomo", &cfg->pomodoro_seconds);
+    if (err == ESP_OK) (void)nvs_get_u32(nvs, "pomo", &cfg->pomodoro_focus_sec);
+    if (err == ESP_OK) (void)nvs_get_u32(nvs, "pomo_sb", &cfg->pomodoro_short_break_sec);
+    if (err == ESP_OK) (void)nvs_get_u32(nvs, "pomo_lb", &cfg->pomodoro_long_break_sec);
+    if (err == ESP_OK) (void)nvs_get_u32(nvs, "pomo_ev", &cfg->pomodoro_long_break_every);
     if (err == ESP_OK) {
         (void)nvs_get_i32(nvs, "wlat", &cfg->weather_lat_e6);
         (void)nvs_get_i32(nvs, "wlon", &cfg->weather_lon_e6);
@@ -63,7 +69,10 @@ static esp_err_t save_to_nvs(const user_assets_config_t *asset_cfg)
     if (err == ESP_OK) err = nvs_set_str(nvs, "pass", asset_cfg->password);
     if (err == ESP_OK) err = nvs_set_str(nvs, "tz", asset_cfg->timezone);
     if (err == ESP_OK) err = nvs_set_u32(nvs, "rot", asset_cfg->rotation_interval_sec);
-    if (err == ESP_OK) err = nvs_set_u32(nvs, "pomo", asset_cfg->pomodoro_seconds);
+    if (err == ESP_OK) err = nvs_set_u32(nvs, "pomo", asset_cfg->pomodoro_focus_sec);
+    if (err == ESP_OK) err = nvs_set_u32(nvs, "pomo_sb", asset_cfg->pomodoro_short_break_sec);
+    if (err == ESP_OK) err = nvs_set_u32(nvs, "pomo_lb", asset_cfg->pomodoro_long_break_sec);
+    if (err == ESP_OK) err = nvs_set_u32(nvs, "pomo_ev", asset_cfg->pomodoro_long_break_every);
     if (err == ESP_OK) err = nvs_set_i32(nvs, "wlat", asset_cfg->weather_lat_e6);
     if (err == ESP_OK) err = nvs_set_i32(nvs, "wlon", asset_cfg->weather_lon_e6);
     if (err == ESP_OK) err = nvs_set_u32(nvs, "asset_id", asset_cfg->asset_id);
@@ -91,9 +100,22 @@ esp_err_t user_config_load(user_config_t *out_config)
         strlcpy(out_config->password, asset_cfg.password, sizeof(out_config->password));
         strlcpy(out_config->timezone, asset_cfg.timezone, sizeof(out_config->timezone));
         out_config->rotation_interval_sec = asset_cfg.rotation_interval_sec;
-        out_config->pomodoro_seconds = asset_cfg.pomodoro_seconds;
+        out_config->pomodoro_focus_sec = asset_cfg.pomodoro_focus_sec;
+        out_config->pomodoro_short_break_sec = asset_cfg.pomodoro_short_break_sec;
+        out_config->pomodoro_long_break_sec = asset_cfg.pomodoro_long_break_sec;
+        out_config->pomodoro_long_break_every = asset_cfg.pomodoro_long_break_every;
         out_config->weather_lat_e6 = asset_cfg.weather_lat_e6;
         out_config->weather_lon_e6 = asset_cfg.weather_lon_e6;
+    }
+
+    if (out_config->pomodoro_short_break_sec == 0) {
+        out_config->pomodoro_short_break_sec = 300;
+    }
+    if (out_config->pomodoro_long_break_sec == 0) {
+        out_config->pomodoro_long_break_sec = 900;
+    }
+    if (out_config->pomodoro_long_break_every == 0) {
+        out_config->pomodoro_long_break_every = 4;
     }
 
     if (out_config->ssid[0] == '\0') {

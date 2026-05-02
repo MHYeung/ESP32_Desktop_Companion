@@ -9,7 +9,10 @@ typedef struct {
     char password[USER_ASSETS_MAX_PASSWORD_LEN + 1];
     char timezone[USER_ASSETS_MAX_TIMEZONE_LEN + 1];
     uint32_t rotation_interval_sec;
-    uint32_t pomodoro_seconds;
+    uint32_t pomodoro_focus_sec;
+    uint32_t pomodoro_short_break_sec;
+    uint32_t pomodoro_long_break_sec;
+    uint32_t pomodoro_long_break_every;
     int32_t weather_lat_e6;
     int32_t weather_lon_e6;
 } user_config_t;

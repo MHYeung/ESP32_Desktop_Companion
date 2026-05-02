@@ -98,6 +98,21 @@ static int text_width_px(const char *text, int scale) {
     return width > 0 ? width - scale : 0;
 }
 
+#define SPRITE_CHROMA_KEY 0xF81F
+
+static uint16_t dim_rgb565_word(uint16_t raw, uint8_t brightness_percent)
+{
+    uint16_t r = ((raw >> 11) & 0x1F) * brightness_percent / 100;
+    uint16_t g = ((raw >> 5) & 0x3F) * brightness_percent / 100;
+    uint16_t b = (raw & 0x1F) * brightness_percent / 100;
+    return (uint16_t)((r << 11) | (g << 5) | b);
+}
+
+static uint16_t photo_pixel_at_x(const uint8_t *row, int x)
+{
+    return (uint16_t)(((uint16_t)row[x * 2] << 8) | row[x * 2 + 1]);
+}
+
 static void dim_rgb565_buffer(uint8_t *buffer, size_t pixel_count, uint8_t brightness_percent) {
     for (size_t i = 0; i < pixel_count; i++) {
         uint16_t raw = ((uint16_t)buffer[i * 2] << 8) | buffer[i * 2 + 1];
@@ -222,6 +237,49 @@ void display_draw_asset_image_dimmed(esp_lcd_panel_handle_t panel_handle,
         xSemaphoreTake(flush_sem, portMAX_DELAY);
     }
     free(buffer);
+}
+
+void display_draw_sprite_on_photo_dimmed(esp_lcd_panel_handle_t panel, size_t photo_index,
+                                         int x, int y, int w, int h,
+                                         const uint16_t *sprite,
+                                         uint8_t brightness_percent)
+{
+    if (!user_assets_ready() || user_assets_photo_count() == 0 || sprite == NULL) {
+        return;
+    }
+    if (x < 0 || y < 0 || w <= 0 || h <= 0 || x + w > LCD_WIDTH || y + h > LCD_HEIGHT) {
+        return;
+    }
+
+    uint16_t *composite = heap_caps_malloc((size_t)w * (size_t)h * sizeof(uint16_t), MALLOC_CAP_DMA);
+    uint8_t *row_buf = heap_caps_malloc(LCD_WIDTH * 2, MALLOC_CAP_DMA);
+    if (!composite || !row_buf) {
+        free(composite);
+        free(row_buf);
+        return;
+    }
+
+    for (int row = 0; row < h; row++) {
+        if (user_assets_read_photo_rows(photo_index, (uint16_t)(y + row), 1, row_buf,
+                                          LCD_WIDTH * 2) != ESP_OK) {
+            for (int col = 0; col < w; col++) {
+                composite[row * w + col] = dim_rgb565_word(0, brightness_percent);
+            }
+            continue;
+        }
+        dim_rgb565_buffer(row_buf, LCD_WIDTH, brightness_percent);
+        for (int col = 0; col < w; col++) {
+            uint16_t sp = sprite[row * w + col];
+            uint16_t bg = photo_pixel_at_x(row_buf, x + col);
+            composite[row * w + col] =
+                (sp == SPRITE_CHROMA_KEY) ? bg : dim_rgb565_word(sp, brightness_percent);
+        }
+    }
+
+    esp_lcd_panel_draw_bitmap(panel, x, y, x + w, y + h, composite);
+    xSemaphoreTake(flush_sem, portMAX_DELAY);
+    free(row_buf);
+    free(composite);
 }
 
 void display_fill_rect(esp_lcd_panel_handle_t panel_handle, int x, int y, int w, int h, uint16_t color) {

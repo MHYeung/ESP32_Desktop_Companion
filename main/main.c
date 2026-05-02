@@ -6,9 +6,9 @@
 #include "esp_netif.h"
 #include "nvs_flash.h"
 
-// Include our custom modules
 #include "display_hal.h"
 #include "button_mgr.h"
+#include "geo_client.h"
 #include "wifi_time.h"
 #include "ui_app.h"
 #include "user_assets.h"
@@ -16,6 +16,27 @@
 #include "weather_client.h"
 
 static const char *TAG = "main";
+
+static void on_sta_got_ip_geo(void *arg, esp_event_base_t base, int32_t id, void *data)
+{
+    (void)arg;
+    (void)data;
+    if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
+        geo_client_request_refresh();
+    }
+}
+
+static void geo_daily_refresh_task(void *arg)
+{
+    (void)arg;
+    const TickType_t day = pdMS_TO_TICKS(86400000);
+    for (;;) {
+        vTaskDelay(day);
+        if (wifi_time_is_connected()) {
+            geo_client_request_refresh();
+        }
+    }
+}
 
 static void init_system_services(void)
 {
@@ -28,6 +49,7 @@ static void init_system_services(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     weather_client_init();
+    geo_client_init();
 }
 
 void app_main(void)
@@ -35,26 +57,29 @@ void app_main(void)
     ESP_LOGI(TAG, "desktop companion booting");
     init_system_services();
 
-    // 1. Initialize Screen & Storage
     esp_lcd_panel_handle_t display = display_hal_init();
     esp_err_t assets_ret = user_assets_init();
     if (assets_ret != ESP_OK) {
         ESP_LOGW(TAG, "continuing without flashed photo assets: %s", esp_err_to_name(assets_ret));
     }
 
-    // 2. Initialize Button (Gets the FreeRTOS event queue)
     QueueHandle_t btn_queue = button_mgr_init();
 
     user_config_t user_config;
     esp_err_t cfg_ret = user_config_load(&user_config);
     if (cfg_ret == ESP_OK) {
         ESP_LOGI(TAG, "connecting to configured Wi-Fi");
-        ESP_ERROR_CHECK(wifi_time_init(user_config.ssid, user_config.password,
-                                       user_config.timezone));
+        ESP_ERROR_CHECK(wifi_time_init(user_config.ssid, user_config.password));
+        ESP_ERROR_CHECK(
+            esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, on_sta_got_ip_geo, NULL));
+        xTaskCreate(geo_daily_refresh_task, "geo_daily", 3072, NULL, 3, NULL);
     } else {
         ESP_LOGW(TAG, "starting UI without Wi-Fi time: %s", esp_err_to_name(cfg_ret));
         user_config.rotation_interval_sec = 60;
-        user_config.pomodoro_seconds = 25 * 60;
+        user_config.pomodoro_focus_sec = 25 * 60;
+        user_config.pomodoro_short_break_sec = 300;
+        user_config.pomodoro_long_break_sec = 900;
+        user_config.pomodoro_long_break_every = 4;
         user_config.weather_lat_e6 = 0;
         user_config.weather_lon_e6 = 0;
         user_assets_config_t ac;
@@ -62,16 +87,19 @@ void app_main(void)
             if (ac.rotation_interval_sec > 0) {
                 user_config.rotation_interval_sec = ac.rotation_interval_sec;
             }
-            if (ac.pomodoro_seconds > 0) {
-                user_config.pomodoro_seconds = ac.pomodoro_seconds;
+            if (ac.pomodoro_focus_sec > 0) {
+                user_config.pomodoro_focus_sec = ac.pomodoro_focus_sec;
             }
+            user_config.pomodoro_short_break_sec = ac.pomodoro_short_break_sec;
+            user_config.pomodoro_long_break_sec = ac.pomodoro_long_break_sec;
+            user_config.pomodoro_long_break_every = ac.pomodoro_long_break_every;
             user_config.weather_lat_e6 = ac.weather_lat_e6;
             user_config.weather_lon_e6 = ac.weather_lon_e6;
         }
     }
 
-    // 4. Start the Application UI Loop
     ui_app_start(display, btn_queue, user_config.rotation_interval_sec,
-                 user_config.pomodoro_seconds, user_config.weather_lat_e6,
-                 user_config.weather_lon_e6);
+                 user_config.pomodoro_focus_sec, user_config.pomodoro_short_break_sec,
+                 user_config.pomodoro_long_break_sec, user_config.pomodoro_long_break_every,
+                 user_config.weather_lat_e6, user_config.weather_lon_e6);
 }

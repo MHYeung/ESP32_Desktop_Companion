@@ -163,8 +163,7 @@ void weather_client_init(void)
 void weather_client_request_refresh(int32_t lat_e6, int32_t lon_e6)
 {
     if (lat_e6 == 0 && lon_e6 == 0) {
-        lat_e6 = (int32_t)(25.033 * 1e6);
-        lon_e6 = (int32_t)(121.565 * 1e6);
+        return;
     }
     if (s_state.busy) {
         return;
