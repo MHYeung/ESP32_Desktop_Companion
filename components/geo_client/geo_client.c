@@ -61,7 +61,46 @@ static bool parse_utc_offset(cJSON *root, int32_t *utc_offset_sec_out)
     if (cJSON_IsNumber(off_j)) {
         v = (long long)llround(off_j->valuedouble);
     } else if (cJSON_IsString(off_j) && off_j->valuestring != NULL) {
-        v = strtoll(off_j->valuestring, NULL, 10);
+        const char *s = off_j->valuestring;
+        char *end = NULL;
+        long long parsed = strtoll(s, &end, 10);
+        if (end != s && end != NULL && *end == '\0') {
+            v = parsed;
+        } else {
+            int sign = 1;
+            if (*s == '+') {
+                s++;
+            } else if (*s == '-') {
+                sign = -1;
+                s++;
+            }
+
+            size_t len = strlen(s);
+            int hh = 0;
+            int mm = 0;
+            if (len == 4) {
+                hh = (s[0] - '0') * 10 + (s[1] - '0');
+                mm = (s[2] - '0') * 10 + (s[3] - '0');
+            } else if (len == 5 && s[2] == ':') {
+                hh = (s[0] - '0') * 10 + (s[1] - '0');
+                mm = (s[3] - '0') * 10 + (s[4] - '0');
+            } else {
+                return false;
+            }
+
+            for (size_t i = 0; i < len; ++i) {
+                if (s[i] == ':') {
+                    continue;
+                }
+                if (s[i] < '0' || s[i] > '9') {
+                    return false;
+                }
+            }
+            if (hh > 14 || mm > 59) {
+                return false;
+            }
+            v = sign * (long long)(hh * 3600 + mm * 60);
+        }
     } else {
         return false;
     }
